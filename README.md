@@ -84,9 +84,7 @@ echo "$OUTPUT"
 gh auth login
 
 gh secret set SUBSCRIPTION_ID --body "$SUBSCRIPTION_ID" --env "$GH_ENV_NAME" --repo ${GH_USERNAME}/${GH_REPO_NAME}
-
 gh secret set CLIENT_ID --body "$CLIENT_ID" --env "$GH_ENV_NAME" --repo ${GH_USERNAME}/${GH_REPO_NAME}
-
 gh secret set TENANT_ID --body "$TENANT_ID" --env "$GH_ENV_NAME" --repo ${GH_USERNAME}/${GH_REPO_NAME}
 ```
 
@@ -108,6 +106,11 @@ More information: https://docs.kratix.io/main/reference/statestore/gitstatestore
     - Contents: Read and write (Will be used by ArgoCD to read, and by Kratix to write CRD's)
     - Pull request: Read and write (To be used by Kratix)
 
+**Install App on repositories**
+- Developer settings > GitHub Apps > TEKNOLOGI-KONSTRUCT
+  - Install App
+  - Repositories: TEKNOLOGI-KONSTRUCT & TEKNOLOGI-KONSTRUCT-STATE
+
 **Generate a private key**
 - https://github.com/settings/apps/teknologi-konstruct
   - Generate a private key
@@ -115,10 +118,13 @@ More information: https://docs.kratix.io/main/reference/statestore/gitstatestore
 **Create client secret for Backstage**
 - https://github.com/settings/apps/TEKNOLOGI-KONSTRUCT
 
-**Install App on repositories**
-- Developer settings > GitHub Apps > TEKNOLOGI-KONSTRUCT
-  - Install App
-  - Repositories: TEKNOLOGI-KONSTRUCT & TEKNOLOGI-KONSTRUCT-STATE
+The following secret data will be stored in Key Vault, so the External Secrets Operator can sync it into the cluster. Note the values below, you'll add them to Key Vault in [KeyVault secrets](#keyvault-secrets).
+
+- APP_ID = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct)
+- INSTALLATION_ID = [https://github.com/settings/installations](https://github.com/settings/installations) > Select App > Check the URL for the installation id.
+- PRIVATE_KEY_LOCATION = The location to the private key that is stored locally
+- CLIENT_ID = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct)
+- CLIENT_SECRET
 
 ### Azure resources
 
@@ -153,7 +159,7 @@ The Key Vault teknologi-eur1-kv will be used to store secrets
 
 ### Service Principals
 
-The following service principals are necessary for the platform:
+The following service principals are necessary for the platform, and the secret data will be stored in Key Vault, so the External Secrets Operator can sync it into the cluster. Note the values below, you'll add them to Key Vault in [KeyVault secrets](#keyvault-secrets):
 
 **teknologi-platform-acr**
 - Pull from ACR from within the cluster
@@ -161,17 +167,17 @@ The following service principals are necessary for the platform:
 ```bash
 ACR_REGISTRY_ID=$(az acr show --name teknologieur1acr --query id --output tsv)
 
-SP_PASSWORD=$(az ad sp create-for-rbac \
+ACR_SP_PASSWORD=$(az ad sp create-for-rbac \
   --name teknologi-platform-acr \
   --scopes $ACR_REGISTRY_ID \
   --role acrpull \
   --query password \
   --output tsv)
 
-SP_APP_ID=$(az ad sp list --display-name teknologi-platform-acr --query '[].appId' --output tsv)
+ACR_SP_CLIENT_ID=$(az ad sp list --display-name teknologi-platform-acr --query '[].appId' --output tsv)
 
-echo $SP_APP_ID
-echo $SP_PASSWORD
+echo "ACR_SP_CLIENT_ID:  $ACR_SP_CLIENT_ID"
+echo "ACR_SP_PASSWORD: $ACR_SP_PASSWORD"  
 ```
 
 **teknologi-platform-cloud**
@@ -193,9 +199,6 @@ SP=$(az ad sp create-for-rbac \
   --name "$SP_NAME" \
   --skip-assignment \
   --output json)
-
-SP_APP_ID=$(echo $SP | jq -r '.appId')
-SP_PASSWORD=$(echo $SP | jq -r '.password')
 
 # Role assignment 1: Terraform tfstate backend
 STORAGE_ACCOUNT_ID=$(az storage account show \
@@ -219,14 +222,17 @@ az role assignment create \
   --role "Key Vault Secrets User" \
   --scope "$KEY_VAULT_ID"
 
-# Role assignement 3: Contributor on subcription level for Terraform and Crossplane
+# Role assignment 3: Contributor on subcription level for Terraform and Crossplane
 az role assignment create \
   --assignee $SP_APP_ID \
   --role Contributor \
   --scope /subscriptions/e229909d-d13f-44aa-ae26-046922d181eb
 
-echo "SP_APP_ID:  $SP_APP_ID"
-echo "SP_PASSWORD: $SP_PASSWORD"  
+CLOUD_CLIENT_ID=$(echo $SP | jq -r '.appId')
+CLOUD_SP_PASSWORD=$(echo $SP | jq -r '.password')
+
+echo "CLOUD_CLIENT_ID:  $CLOUD_CLIENT_ID"
+echo "CLOUD_SP_PASSWORD: $CLOUD_SP_PASSWORD"  
 ```
 
 **teknologi-platform-authentication**
@@ -264,10 +270,78 @@ Create incoming webhook
   - In the app settings sidebar → Incoming Webhooks → toggle Activate Incoming Webhooks to ON
 3. Add a webhook to a channel
   - Scroll down → Add New Webhook to Workspace → pick the channel (e.g. #platform-notifications) → Allow
-  - You'll get a URL like: https://hooks.slack.com/services/xxxxxxx/xxxxxxxx/xxxxxxxxxx
+  - You'll get a URL like: https://hooks.slack.com/services/xxxxxxx/xxxxxx/xxxxxxxxxxxxxxx
 4. Test it immediately
 ```bash
-curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/xxxxxxx/xxxxxxxx/xxxxxxxxxx
+curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/xxxxxxx/xxxxxx/xxxxxxxxxxxxxxx
 ```
 Should reply ok and post in the channel.
 
+The webhook URL will be stored in Key Vault, so the External Secrets Operator can sync it into the cluster. Note the webhook URL value, you'll add them to Key Vault in [KeyVault secrets](#keyvault-secrets).
+
+### KeyVault secrets
+
+The following secret data must be stored in Key Vault, so the External Secrets Operator can sync it into the cluster. 
+
+```bash
+KV_NAME="teknologi-eur1-kv"
+
+GITHUB_APP_ID=""
+GITHUB_APP_INSTALLATION_ID=""
+GITHUB_APP_PRIVATE_KEY_LOCATION="/Users/ashwin/Documents/teknologi-konstruct.2026-08-02.private-key.pem"
+GITHUB_APP_CLIENT_ID=""
+GITHUB_APP_CLIENT_SECRET=""
+
+ACR_NAME="teknologieur1acr.azurecr.io"
+ACR_SP_CLIENT_ID=""
+ACR_SP_PASSWORD=""
+
+TERRAFORM_RESOURCE_GROUP="teknologi-eur1-prd-k8s-rg"
+TERRAFORM_SA_NAME="teknologieur1sa"
+TERRAFORM_SA_CONTAINER="tfstate"
+
+TERRAFORM_SP_CLIENT_ID=""
+TERRAFORM_SP_CLIENT_SECRET=""
+TERRAFORM_SP_TENANT_ID=""
+TERRAFORM_SP_SUBSCRIPTION_ID=""
+
+AUTHENTICATION_SP_CLIENT_ID=""
+AUTHENTICATION_SP_CLIENT_SECRET=""
+AUTHENTICATION_SP_TENANT_ID=""
+
+SLACK_WEBHOOK=""
+
+# GitHub App
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-id"              --value "$GITHUB_APP_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-installation-id" --value "$GITHUB_APP_INSTALLATION_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-private-key" --file "$GITHUB_APP_PRIVATE_KEY_LOCATION"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-client-id" --value "$GITHUB_APP_CLIENT_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-client-secret" --value "$GITHUB_APP_CLIENT_SECRET"
+
+# ACR credentials (teknologi-platform-acr SP)
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-acr-server" --value "$ACR_NAME"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-acr-username" --value "$ACR_SP_CLIENT_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-acr-password" --value "$ACR_SP_PASSWORD"
+
+# Terraform backend
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-backend-rg" --value "$TERRAFORM_RESOURCE_GROUP"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-backend-storage-account" --value "$TERRAFORM_SA_NAME"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-backend-container" --value "$TERRAFORM_SA_CONTAINER"
+
+# Terraform Azure credentials (teknologi-platform-cloud SP)
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-client-id" --value "$TERRAFORM_SP_CLIENT_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-client-secret" --value "$TERRAFORM_SP_CLIENT_SECRET"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-tenant-id" --value "$TERRAFORM_SP_TENANT_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-subscription-id" --value "$TERRAFORM_SP_SUBSCRIPTION_ID"
+
+# Entra authentication login
+az keyvault secret set --vault-name teknologi-eur1-kv --name platform-authentication-client-id --value "$AUTHENTICATION_SP_CLIENT_ID"
+az keyvault secret set --vault-name teknologi-eur1-kv --name platform-authentication-client-secret --value "$AUTHENTICATION_SP_CLIENT_SECRET"
+az keyvault secret set --vault-name teknologi-eur1-kv --name platform-authentication-tenant-id --value "$AUTHENTICATION_SP_TENANT_ID"
+
+# Slack webhook
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-slack-webhook-url" --value "$SLACK_WEBHOOK"
+
+# REST API shared bearer token
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-rest-api-key" --value "$(openssl rand -hex 32)"
+```
