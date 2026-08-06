@@ -40,7 +40,7 @@ spec:
   source:
     repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
     targetRevision: HEAD
-    path: appsets/kratix
+    path: appsets/hub
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
