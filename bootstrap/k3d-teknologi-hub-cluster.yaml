@@ -1,0 +1,50 @@
+# Register this cluster in ArgoCD before anything else syncs
+apiVersion: v1
+kind: Secret
+metadata:
+  name: k3d-teknologi-hub-cluster
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+    cluster-name: k3d-teknologi-hub-cluster
+    cluster-type: dev
+    platform.external-secrets: "false" #true
+    platform.argocd: "false" #true
+    platform.backstage: "false" #true
+    platform.cert-manager: "false" #true
+    platform.kratix: "false" #true
+    platform.crossplane: "false"
+    platform.kratix-workloads: "false"
+    platform.rest-api: "false" #true
+type: Opaque
+stringData:
+  name: k3d-teknologi-hub-cluster
+  server: https://kubernetes.default.svc
+  config: |
+    {
+      "tlsClientConfig": {
+        "insecure": false
+      }
+    }
+---
+# Root Application - deploys all ApplicationSets
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
+    targetRevision: HEAD
+    path: appsets/kratix
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

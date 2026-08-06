@@ -1,0 +1,112 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-platform-controllers
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+
+  # Backstage — clusters with platform.backstage: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.backstage: "true"
+      - list:
+          elements:
+          - component: backstage
+            helmRepo: https://backstage.github.io/charts
+            helmChart: backstage
+            helmVersion: "2.8.2"
+            namespace: backstage
+
+  # Cert-Manager — clusters with platform.cert-manager: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.cert-manager: "true"
+      - list:
+          elements:
+          - component: cert-manager
+            helmRepo: https://charts.jetstack.io
+            helmChart: cert-manager
+            helmVersion: v1.21.1
+            namespace: cert-manager
+
+  # Crossplane — clusters with platform.crossplane: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.crossplane: "true"
+      - list:
+          elements:
+          - component: crossplane
+            helmRepo: https://charts.crossplane.io/stable
+            helmChart: crossplane
+            helmVersion: 2.3.4
+            namespace: crossplane-system
+
+  # Kratix — clusters with platform.kratix: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.kratix: "true"
+      - list:
+          elements:
+          - component: kratix
+            helmRepo: https://syntasso.github.io/helm-charts
+            helmChart: kratix
+            helmVersion: v0.0.1
+            namespace: kratix-platform-system
+
+  # External Secrets Operator — clusters with platform.external-secrets: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.external-secrets: "true"
+      - list:
+          elements:
+          - component: external-secrets
+            helmRepo: https://charts.external-secrets.io
+            helmChart: external-secrets
+            helmVersion: "2.8.0"
+            namespace: external-secrets
+
+  template:
+    metadata:
+      name: '{{.component}}-controllers'
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+      - repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
+        targetRevision: main
+        ref: values
+      - repoURL: '{{.helmRepo}}'
+        chart: '{{.helmChart}}'
+        targetRevision: '{{.helmVersion}}'
+        helm:
+          valueFiles:
+          - $values/tenants/platform/{{.component}}/base/helm-values.yaml
+          - $values/tenants/platform/{{.component}}/overlays/{{index .metadata.labels "cluster-type"}}/helm-values.yaml
+          ignoreMissingValueFiles: true
+      destination:
+        name: '{{.name}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

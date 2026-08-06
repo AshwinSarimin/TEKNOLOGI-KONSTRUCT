@@ -1,0 +1,16 @@
+
+configs:
+  cm:
+    oidc.config: |
+      name: Entra ID
+      issuer: https://login.microsoftonline.com/$argocd-entra-id:tenantId/v2.0
+      clientID: $argocd-entra-id:clientID
+      clientSecret: $argocd-entra-id:clientSecret
+      requestedScopes:
+        - openid
+        - profile
+        - email
+  rbac:
+    policy.csv: |
+      g, ashwin.sarimin@teknologi.nl, role:admin
+    scopes: '[email]'

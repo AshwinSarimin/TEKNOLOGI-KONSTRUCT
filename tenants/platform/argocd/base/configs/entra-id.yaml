@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: argocd-entra-id
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: platform-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: argocd-entra-id
+  data:
+  - secretKey: clientID
+    remoteRef:
+      key: platform-entra-client-id
+  - secretKey: clientSecret
+    remoteRef:
+      key: platform-entra-client-secret
+  - secretKey: tenantId
+    remoteRef:
+      key: platform-entra-tenant-id

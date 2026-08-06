@@ -345,3 +345,231 @@ az keyvault secret set --vault-name "$KV_NAME" --name "platform-slack-webhook-ur
 # REST API shared bearer token
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-rest-api-key" --value "$(openssl rand -hex 32)"
 ```
+
+## Clusters Bootstrap
+
+### Set variables
+
+```bash
+HUB_CLUSTER_NAME="k3d-teknologi-hub-cluster"
+WORKLOAD_CLUSTER_NAME="k3d-teknologi-workload-cluster"
+HUB_CONFIG_NAME="k3d-k3d-teknologi-hub-cluster"
+WORKLOAD_CONFIG_NAME="k3d-k3d-teknologi-workload-cluster"
+
+REPO_PLATFORM_URL="https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git"
+GITHUB_APP_ID=""
+GITHUB_INSTALLATION_ID=""
+GITHUB_PRIVATE_KEY_LOCATION=""
+
+CLOUD_SP_CLIENT_ID=""
+CLOUD_SP_CLIENT_SECRET=""
+CLOUD_SP_TENANT_ID=""
+```
+
+### k3d
+
+```bash
+# Create clusters
+k3d cluster create "$HUB_CLUSTER_NAME" --api-port 6550 --servers 1 -p "8080:80@loadbalancer" -p "8443:443@loadbalancer" --k3s-arg '--kube-proxy-arg=proxy-mode=ipvs@server:*'
+k3d cluster create "$WORKLOAD_CLUSTER_NAME" --api-port 6551 --servers 1 -p "9080:80@loadbalancer" -p "9443:443@loadbalancer" --k3s-arg '--kube-proxy-arg=proxy-mode=ipvs@server:*'
+
+# Verify both contexts are available
+kubectl config get-contexts
+```
+
+The `--k3s-arg` requests IPVS kube-proxy mode instead of the default iptables mode. This avoids avoids a known iptables DNAT/conntrack race on single-endpoint Services (e.g. the `kubernetes` service itself) that causes intermittent "connection refused errors on a pod's second-or-later connection to it.
+
+### ArgoCD
+
+#### Install on clusters
+
+```bash
+# Add Argo Helm repo
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+
+# Install ArgoCD on hub cluster
+helm upgrade --install argocd argo/argo-cd \
+  -n argocd \
+  --create-namespace \
+  --set 'server.extraArgs[0]=--insecure' \
+  -f tenants/platform/argocd/base/helm-values.yaml \
+  -f tenants/platform/argocd/overlays/dev/hub/helm-values.yaml \
+  --kube-context "$HUB_CONFIG_NAME"
+
+kubectl wait --for=condition=available deployment/argocd-server \
+  -n argocd \
+  --timeout=120s \
+  --context "$HUB_CONFIG_NAME"
+
+# Install ArgoCD on workload cluster
+helm upgrade --install argocd argo/argo-cd \
+  -n argocd \
+  --create-namespace \
+  --set 'server.extraArgs[0]=--insecure' \
+  -f tenants/platform/argocd/base/helm-values.yaml \
+  -f tenants/platform/argocd/overlays/dev/workload/helm-values.yaml \
+  --kube-context "$WORKLOAD_CONFIG_NAME"
+
+kubectl wait --for=condition=available deployment/argocd-server \
+  -n argocd \
+  --timeout=120s \
+  --context "$HUB_CONFIG_NAME"
+```
+
+> To reach the ArgoCD UI for now without Ingress, use port-forwarding:
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:80 --context "$HUB_CONFIG_NAME"
+kubectl port-forward svc/argocd-server -n argocd 8080:80 --context "$WORKLOAD_CONFIG_NAME"
+# Open http://localhost:8080
+
+# Admin password still works as a fallback even with SSO configured above. ESO needs to sync the argocd-entra-id secret before SSO login actually works, which happens later in the bootstrap.
+HUB_ARGO_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+  --context "$HUB_CONFIG_NAME" \
+  -o jsonpath="{.data.password}" | base64 -d)
+
+WORKLOAD_ARGO_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+  --context "$WORKLOAD_CONFIG_NAME" \
+  -o jsonpath="{.data.password}" | base64 -d)
+
+echo "Hub ArgoCD password: ${HUB_ARGO_PASSWORD}"
+echo "Workload ArgoCD password: ${WORKLOAD_ARGO_PASSWORD}"
+```
+
+#### Create GitHub credentials
+
+```bash
+# Hub cluster
+kubectl create secret generic github-app-creds \
+  -n argocd \
+  --context "$HUB_CONFIG_NAME" \
+  --from-literal=type=git \
+  --from-literal=url="$REPO_PLATFORM_URL" \
+  --from-literal=githubAppID="$GITHUB_APP_ID" \
+  --from-literal=githubAppInstallationID="$GITHUB_INSTALLATION_ID" \
+  --from-file=githubAppPrivateKey="$GITHUB_PRIVATE_KEY_LOCATION"
+
+kubectl label secret github-app-creds \
+  -n argocd \
+  --context "$HUB_CONFIG_NAME" \
+  argocd.argoproj.io/secret-type=repository
+
+# Workload cluster
+kubectl create secret generic github-app-creds \
+  -n argocd \
+  --context "$WORKLOAD_CONFIG_NAME" \
+  --from-literal=type=git \
+  --from-literal=url="$REPO_PLATFORM_URL" \
+  --from-literal=githubAppID="$GITHUB_APP_ID" \
+  --from-literal=githubAppInstallationID="$GITHUB_INSTALLATION_ID" \
+  --from-file=githubAppPrivateKey="$GITHUB_PRIVATE_KEY_LOCATION"
+
+kubectl label secret github-app-creds \
+  -n argocd \
+  --context "$WORKLOAD_CONFIG_NAME" \
+  argocd.argoproj.io/secret-type=repository
+```
+
+### External Secrets Operator
+
+#### Bootstrap ESO
+
+Create secret to bootstrap ESO
+It's the credential ESO itself needs to connect to Key Vault. Everything else will sync automatically from here.
+
+```bash
+# Bootstrap ESO on hub cluster
+kubectl create ns external-secrets --context "$HUB_CONFIG_NAME"
+
+kubectl create secret generic azure-kv-credentials \
+  --from-literal=clientId="$CLOUD_SP_CLIENT_ID" \
+  --from-literal=clientSecret="$CLOUD_SP_CLIENT_SECRET" \
+  --from-literal=tenantId="$CLOUD_SP_TENANT_ID" \
+  -n external-secrets \
+  --context "$HUB_CONFIG_NAME"
+
+# Bootstrap ESO on workload cluster
+kubectl create ns external-secrets --context "$WORKLOAD_CONFIG_NAME"
+
+kubectl create secret generic azure-kv-credentials \
+  --from-literal=clientId="$CLOUD_SP_CLIENT_ID" \
+  --from-literal=clientSecret="$CLOUD_SP_CLIENT_SECRET" \
+  --from-literal=tenantId="$CLOUD_SP_TENANT_ID" \
+  -n external-secrets \
+  --context "$WORKLOAD_CONFIG_NAME"
+```
+
+### Hub cluster
+
+#### Bootstrap Cluster
+
+```bash
+# Bootstrap
+kubectl apply -f bootstrap/k3d-teknologi-hub-cluster.yaml --context "$HUB_CONFIG_NAME"
+```
+
+
+
+-------------------------------
+
+```bash
+kubectl create secret generic teknologi-platform-orchestration-repo \
+  -n argocd \
+  --context k3d-teknologi-workload-cluster \
+  --from-literal=type=git \
+  --from-literal=url=https://github.com/AshwinSarimin/TEKNOLOGI-PLATFORM-ORCHESTRATION.git \
+  --from-literal=githubAppID=3318696 \
+  --from-literal=githubAppInstallationID=122452739 \
+  --from-file=githubAppPrivateKey=/Users/ashwin/Documents/teknologi-platform.2026-04-08.private-key.pem
+
+kubectl label secret teknologi-platform-orchestration-repo -n argocd \
+  --context k3d-teknologi-workload-cluster \
+  argocd.argoproj.io/secret-type=repository
+```
+
+#### Bootstrap Backstage
+
+backstage.localhost needs to resolve to the K3d ingress IP.
+```bash
+echo "127.0.0.1 backstage.localhost" | sudo tee -a /etc/hosts
+```
+
+The GitHub App needs configurations for Backstage to have GitHub signin
+- https://github.com/settings/apps 
+- General → Identifying and authorizing users section is where you enable "Request user authorization (OAuth) during installation" (this is what turns on "Sign in with GitHub App"), and the Callback URL field is where you add http://backstage.localhost/api/auth/github/handler/frame.
+
+
+
+
+### Workload cluster
+
+
+#### Bootstrap cluster
+
+```bash
+# Bootstrap
+kubectl apply -f bootstrap/k3d-teknologi-workload-cluster.yaml --context k3d-teknologi-workload-cluster
+```
+
+### REST API (Phase 5)
+
+Deploys automatically via the `rest-api-configs` ArgoCD Application once `platform-rest-api-key` exists in Key Vault (see [KeyVault secrets](./README.md#keyvault-secrets)) — no separate bootstrap step. Third consumption pattern alongside Backstage and kubectl: a generic `/apply` endpoint that creates any Promise request CRD.
+
+```bash
+API_KEY=$(az keyvault secret show --vault-name teknologi-eur1-kv --name platform-rest-api-key --query value -o tsv)
+
+curl -X POST http://rest-api.localhost:8080/apply \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "kind": "NamespaceRequest",
+    "name": "app-d-dev-ns",
+    "spec": {
+      "namespaceName": "app-d-dev",
+      "environment": "dev",
+      "networkVisibility": "private"
+    }
+  }'
+```
+
+Supported `kind` values: `TeamOnboardingRequest`, `NamespaceRequest`, `KeyVaultRequest`, `StorageAccountRequest`, `StorageAccountTerraformRequest`. Requests always land in `kratix-workloads` on the hub cluster, same as Backstage and kubectl.
