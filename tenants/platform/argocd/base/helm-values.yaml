@@ -2,7 +2,7 @@ configs:
   cm:
     oidc.config: |
       name: Entra ID
-      issuer: https://login.microsoftonline.com/$argocd-entra-id:tenantId/v2.0
+      issuer: https://login.microsoftonline.com/99f9af3a-fd8b-41ec-b487-483a0c562b5c/v2.0
       clientID: $argocd-entra-id:clientID
       clientSecret: $argocd-entra-id:clientSecret
       requestedScopes:

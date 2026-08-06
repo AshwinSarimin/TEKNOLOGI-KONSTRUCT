@@ -10,6 +10,10 @@ spec:
     kind: ClusterSecretStore
   target:
     name: argocd-entra-id
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/part-of: argocd
   data:
   - secretKey: clientID
     remoteRef:
@@ -17,6 +21,3 @@ spec:
   - secretKey: clientSecret
     remoteRef:
       key: platform-authentication-client-secret
-  - secretKey: tenantId
-    remoteRef:
-      key: platform-authentication-tenant-id
