@@ -91,7 +91,7 @@ spec:
       project: default
       sources:
       - repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
-        targetRevision: main
+        targetRevision: feature/setup_infra
         ref: values
       - repoURL: '{{.helmRepo}}'
         chart: '{{.helmChart}}'

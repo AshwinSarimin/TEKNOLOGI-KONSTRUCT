@@ -103,7 +103,7 @@ spec:
       project: default
       sources:
       - repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
-        targetRevision: main
+        targetRevision: feature/setup_infra
         path: 'tenants/platform/{{.component}}/overlays/{{index .metadata.labels "cluster-type"}}'
       destination:
         name: '{{.name}}'

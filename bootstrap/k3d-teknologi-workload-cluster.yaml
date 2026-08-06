@@ -38,7 +38,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
-    targetRevision: HEAD
+    targetRevision: feature/setup_infra
     path: appsets/workload
   destination:
     server: https://kubernetes.default.svc
