@@ -8,7 +8,7 @@ metadata:
     argocd.argoproj.io/secret-type: cluster
     cluster-name: k3d-teknologi-hub-cluster
     cluster-type: dev
-    platform.external-secrets: "false" #true
+    platform.external-secrets: "true"
     platform.argocd: "false" #true
     platform.backstage: "false" #true
     platform.cert-manager: "false" #true
