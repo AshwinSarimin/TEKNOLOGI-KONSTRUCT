@@ -6,7 +6,7 @@ Complete setup of Kratix platform with ArgoCD, Backstage, Crossplane, and multi-
 - [TEKNOLOGI-KONSTRUCT](https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT) - contains source code
 - [TEKNOLOGI-KONSTRUCT-STATE](https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE) - contains workloads manifests created by Kratix
 
-**Access points**
+**URLs**
 Kratix ArgoCD:   https://argocd.konstruct.teknologik8s.nl
 Workload ArgoCD: https://argocd.workload.teknologik8s.nl
 Backstage:       http://backstage.localhost:8080
@@ -32,6 +32,15 @@ brew install gh
 ```
 
 ## One-time Setup
+
+### Resolve locally
+
+The URLs needs to resolve locally to the K3d ingress IP.
+```bash
+echo "127.0.0.1 argocd.konstruct.teknologik8s.nl" | sudo tee -a /etc/hosts
+echo "127.0.0.1 backstage.konstruct.teknologik8s.nl" | sudo tee -a /etc/hosts
+echo "127.0.0.1 argocd.workload.teknologik8s.nl" | sudo tee -a /etc/hosts
+```
 
 ### GitHub Action
 
@@ -529,10 +538,6 @@ kubectl label secret teknologi-platform-orchestration-repo -n argocd \
 
 #### Bootstrap Backstage
 
-backstage.localhost needs to resolve to the K3d ingress IP.
-```bash
-echo "127.0.0.1 backstage.localhost" | sudo tee -a /etc/hosts
-```
 
 The GitHub App needs configurations for Backstage to have GitHub signin
 - https://github.com/settings/apps 
