@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="2056" dy="761" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1364" dy="190" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -200,6 +200,22 @@
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-65" connectable="0" parent="DTOTCtgB_hKucLkh7eAS-64" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Get secrets" vertex="1">
           <mxGeometry relative="1" x="0.0444" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-68" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/DNS_Zones.svg;labelBackgroundColor=none;" value="teknologik8s.nl" vertex="1">
+          <mxGeometry height="64" width="64" x="-200" y="870.44" as="geometry" />
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-69" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.99;entryY=0.561;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-68">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-90" y="840.2" />
+              <mxPoint x="-90" y="906.33" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-70" connectable="0" parent="DTOTCtgB_hKucLkh7eAS-69" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Write DNS" vertex="1">
+          <mxGeometry relative="1" x="0.3912" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>

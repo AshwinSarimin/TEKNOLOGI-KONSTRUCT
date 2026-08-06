@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: ashwin.sarimin@teknologi.nl
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+    - dns01:
+        azureDNS:
+          clientID: "62a7a50c-164c-4ba5-9247-031c47a76cc9"
+          clientSecretSecretRef:
+            name: azuredns-credentials
+            key: clientSecret
+          subscriptionID: "e229909d-d13f-44aa-ae26-046922d181eb"
+          tenantID: "99f9af3a-fd8b-41ec-b487-483a0c562b5c"
+          resourceGroupName: teknologi-eur1-prd-management-rg
+          hostedZoneName: teknologik8s.nl
+          environment: AzurePublicCloud

@@ -300,10 +300,10 @@ TERRAFORM_RESOURCE_GROUP="teknologi-eur1-prd-k8s-rg"
 TERRAFORM_SA_NAME="teknologieur1sa"
 TERRAFORM_SA_CONTAINER="tfstate"
 
-TERRAFORM_SP_CLIENT_ID=""
-TERRAFORM_SP_CLIENT_SECRET=""
-TERRAFORM_SP_TENANT_ID=""
-TERRAFORM_SP_SUBSCRIPTION_ID=""
+CLOUD_SP_CLIENT_ID=""
+CLOUD_SP_CLIENT_SECRET=""
+CLOUD_SP_TENANT_ID=""
+CLOUD_SP_SUBSCRIPTION_ID=""
 
 AUTHENTICATION_SP_CLIENT_ID=""
 AUTHENTICATION_SP_CLIENT_SECRET=""
@@ -329,10 +329,10 @@ az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-backen
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-backend-container" --value "$TERRAFORM_SA_CONTAINER"
 
 # Terraform Azure credentials (teknologi-platform-cloud SP)
-az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-client-id" --value "$TERRAFORM_SP_CLIENT_ID"
-az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-client-secret" --value "$TERRAFORM_SP_CLIENT_SECRET"
-az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-tenant-id" --value "$TERRAFORM_SP_TENANT_ID"
-az keyvault secret set --vault-name "$KV_NAME" --name "platform-terraform-arm-subscription-id" --value "$TERRAFORM_SP_SUBSCRIPTION_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-cloud-client-id" --value "$CLOUD_SP_CLIENT_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-cloud-client-secret" --value "$CLOUD_SP_CLIENT_SECRET"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-cloud-tenant-id" --value "$CLOUD_SP_TENANT_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-cloud-subscription-id" --value "$CLOUD_SP_SUBSCRIPTION_ID"
 
 # Entra authentication login
 az keyvault secret set --vault-name teknologi-eur1-kv --name platform-authentication-client-id --value "$AUTHENTICATION_SP_CLIENT_ID"
