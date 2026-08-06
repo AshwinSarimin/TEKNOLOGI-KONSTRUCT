@@ -13,7 +13,7 @@ metadata:
     platform.external-secrets: "true"
     platform.argocd: "true"
     platform.backstage: "false" #true
-    platform.kratix: "false" #true
+    platform.kratix: "true"
     platform.crossplane: "false"
     platform.kratix-workloads: "false"
     platform.rest-api: "false" #true

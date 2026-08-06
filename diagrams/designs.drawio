@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="2473" dy="601" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2288" dy="973" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -218,6 +218,40 @@
           <mxGeometry relative="1" x="0.3912" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-71" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=pod" value="Cert-Manager" vertex="1">
+          <mxGeometry height="48" width="50" x="385" y="1280" as="geometry" />
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-72" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.053;entryY=0.561;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-68">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="1370.05" />
+              <mxPoint x="-300" y="1370.05" />
+              <mxPoint x="-300" y="906.26" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-73" connectable="0" parent="DTOTCtgB_hKucLkh7eAS-72" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Let&#39;sEncrypt&lt;div&gt;ClusterIssuer&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.5468" y="-4" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-74" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.005;entryY=0.692;entryDx=0;entryDy=0;entryPerimeter=0;" target="DTOTCtgB_hKucLkh7eAS-41">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="1260.05" />
+              <mxPoint x="200" y="1260.05" />
+              <mxPoint x="200" y="1183.21" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-75" connectable="0" parent="DTOTCtgB_hKucLkh7eAS-74" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="SSL cert" vertex="1">
+          <mxGeometry relative="1" x="-0.0841" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-76" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=pod" value="Cert-Manager" vertex="1">
+          <mxGeometry height="48" width="50" x="1100" y="1328" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

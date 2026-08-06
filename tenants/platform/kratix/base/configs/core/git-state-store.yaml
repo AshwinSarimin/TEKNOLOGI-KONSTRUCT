@@ -1,0 +1,35 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: github-app
+  namespace: kratix-platform-system
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: platform-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: github-app
+  data:
+  - secretKey: appID
+    remoteRef:
+      key: platform-github-app-id
+  - secretKey: installationID
+    remoteRef:
+      key: platform-github-app-installation-id
+  - secretKey: privateKey
+    remoteRef:
+      key: platform-github-app-private-key
+---
+apiVersion: platform.kratix.io/v1alpha1
+kind: GitStateStore
+metadata:
+  name: default
+  namespace: kratix-platform-system
+spec:
+  authMethod: githubApp
+  branch: main
+  secretRef:
+    name: github-app
+    namespace: kratix-platform-system
+  url: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE.git

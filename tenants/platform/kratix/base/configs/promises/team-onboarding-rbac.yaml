@@ -1,0 +1,23 @@
+# Allows authenticated users to submit TeamOnboardingRequests to kratix-workloads
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: team-onboarding-requester
+rules:
+- apiGroups: ["marketplace.kratix.io"]
+  resources: ["teamonboardingrequests"]
+  verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: team-onboarding-requester
+  namespace: kratix-workloads
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: team-onboarding-requester
+subjects:
+- kind: Group
+  apiGroup: rbac.authorization.k8s.io
+  name: system:authenticated

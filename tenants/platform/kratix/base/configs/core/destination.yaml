@@ -1,0 +1,16 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: Destination
+metadata:
+  name: k3d-teknologi-workload-cluster
+  namespace: kratix-platform-system
+  labels:
+    environment: dev
+    cluster-type: k3d
+    kratix.destination: "true"
+spec:
+  stateStoreRef:
+    kind: GitStateStore
+    name: default
+  path: k3d-teknologi-workload-cluster
+  filepath:
+    mode: nestedByMetadata
