@@ -13,10 +13,10 @@ spec:
   data:
   - secretKey: clientID
     remoteRef:
-      key: platform-entra-client-id
+      key: platform-authentication-client-id
   - secretKey: clientSecret
     remoteRef:
-      key: platform-entra-client-secret
+      key: platform-authentication-client-secret
   - secretKey: tenantId
     remoteRef:
-      key: platform-entra-tenant-id
+      key: platform-authentication-tenant-id
