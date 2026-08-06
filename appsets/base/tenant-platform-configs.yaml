@@ -8,18 +8,6 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
 
-  # ArgoCD - clusters with platform.argocd: "true"
-  - matrix:
-      generators:
-      - clusters:
-          selector:
-            matchLabels:
-              platform.argocd: "true"
-      - list:
-          elements:
-          - component: argocd
-            namespace: argocd
-
   # Backstage — clusters with platform.backstage: "true"
   - matrix:
       generators:

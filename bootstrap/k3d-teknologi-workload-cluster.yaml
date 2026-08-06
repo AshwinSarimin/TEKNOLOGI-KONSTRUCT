@@ -8,10 +8,11 @@ metadata:
     argocd.argoproj.io/secret-type: cluster
     cluster-name: k3d-teknologi-workload-cluster
     cluster-type: dev
+    cluster-role: workload
     platform.external-secrets: "false" #true
+    platform.cert-manager: "true" 
     platform.argocd: "false" #true
     platform.backstage: "false"
-    platform.cert-manager: "false"
     platform.kratix: "false"
     platform.crossplane: "false" #true
     platform.kratix-workloads: "false" #true

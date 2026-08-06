@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="1364" dy="190" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2473" dy="601" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -39,7 +39,7 @@
           <mxGeometry height="60.44" width="63.62" x="840" y="1430" as="geometry" />
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-35" parent="DTOTCtgB_hKucLkh7eAS-4" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="" vertex="1">
-          <mxGeometry height="350" width="584" x="880" y="1110" as="geometry" />
+          <mxGeometry height="350" width="614" x="850" y="1110" as="geometry" />
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-34" parent="DTOTCtgB_hKucLkh7eAS-4" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="" vertex="1">
           <mxGeometry height="300" width="634" x="110" y="1120" as="geometry" />
@@ -103,13 +103,13 @@
         <mxCell id="DTOTCtgB_hKucLkh7eAS-33" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/other/Entra_Identity.svg;labelBackgroundColor=none;" value="teknologi-platform-authentication" vertex="1">
           <mxGeometry height="60.440000000000005" width="68" x="600" y="810" as="geometry" />
         </mxCell>
-        <mxCell id="DTOTCtgB_hKucLkh7eAS-41" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Management_Portal.svg;labelBackgroundColor=none;" value="ArgoCD&lt;div&gt;&lt;div style=&quot;color: rgb(187, 190, 191); font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; line-height: 18px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: #a5d6ff;&quot;&gt;http://argocd.localhost:8080/&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="48" width="60" x="250" y="1150" as="geometry" />
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-41" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Management_Portal.svg;labelBackgroundColor=none;" value="ArgoCD&lt;div&gt;&lt;div style=&quot;color: rgb(187, 190, 191); font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; line-height: 18px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: #a5d6ff;&quot;&gt;https://argocd.konstruct.teknologik8s.nl&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="48" width="60" x="230" y="1150" as="geometry" />
         </mxCell>
-        <mxCell id="DTOTCtgB_hKucLkh7eAS-43" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Management_Portal.svg;labelBackgroundColor=none;" value="Backstage&lt;div&gt;&lt;div style=&quot;color: rgb(187, 190, 191); font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; line-height: 18px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: #a5d6ff;&quot;&gt;http://backstage.localhost:8080/&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
-          <mxGeometry height="48" width="60" x="510" y="1150" as="geometry" />
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-43" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Management_Portal.svg;labelBackgroundColor=none;" value="Backstage&lt;div&gt;&lt;div style=&quot;color: rgb(187, 190, 191); font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; line-height: 18px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: #a5d6ff;&quot;&gt;https://backstage.konstruct.teknologik8s.nl&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="48" width="60" x="550" y="1150" as="geometry" />
         </mxCell>
-        <mxCell id="DTOTCtgB_hKucLkh7eAS-44" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Management_Portal.svg;labelBackgroundColor=none;" value="ArgoCD&lt;div&gt;&lt;div style=&quot;color: rgb(187, 190, 191); font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; line-height: 18px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: #a5d6ff;&quot;&gt;http://argocd.localhost:9080/&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-44" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Management_Portal.svg;labelBackgroundColor=none;" value="ArgoCD&lt;div&gt;&lt;div style=&quot;color: rgb(187, 190, 191); font-family: Menlo, Monaco, &amp;quot;Courier New&amp;quot;, monospace; line-height: 18px; white-space: pre;&quot;&gt;&lt;span style=&quot;color: #a5d6ff;&quot;&gt;http://argocd.workload.teknologik8s.nl:9443/&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="48" width="60" x="1000" y="1150" as="geometry" />
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-45" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=pod" value="ArgoCD" vertex="1">

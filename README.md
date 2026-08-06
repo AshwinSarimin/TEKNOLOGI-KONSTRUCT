@@ -7,8 +7,8 @@ Complete setup of Kratix platform with ArgoCD, Backstage, Crossplane, and multi-
 - [TEKNOLOGI-KONSTRUCT-STATE](https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE) - contains workloads manifests created by Kratix
 
 **Access points**
-Kratix ArgoCD:   http://argocd.localhost:8080
-Workload ArgoCD: http://argocd.localhost:9080
+Kratix ArgoCD:   https://argocd.konstruct.teknologik8s.nl
+Workload ArgoCD: https://argocd.workload.teknologik8s.nl
 Backstage:       http://backstage.localhost:8080
 
 ## Prerequisites
@@ -242,11 +242,11 @@ echo "CLOUD_SP_PASSWORD: $CLOUD_SP_PASSWORD"
 ```bash
 APP_ID=$(az ad app create \
   --display-name "teknologi-platform-authentication" \
-  --web-redirect-uris "http://backstage.localhost:8080/api/auth/microsoft/handler/frame" "http://argocd.localhost:8080/auth/callback" "http://argocd.localhost:9080/auth/callback" \
+  --web-redirect-uris "https://backstage.konstruct.teknologik8s.nl/api/auth/microsoft/handler/frame" "https://argocd.konstruct.teknologik8s.nl/auth/callback" "https://argocd.workload.teknologik8s.nl:9443/auth/callback" \
   --sign-in-audience AzureADMyOrg \
   --query appId -o tsv)
 # If this App Registration already exists (not a fresh create), add the redirect URIs instead of recreating it:
-#   az ad app update --id "$APP_ID" --web-redirect-uris "http://backstage.localhost:8080/api/auth/microsoft/handler/frame" "http://argocd.localhost:8080/auth/callback" "http://argocd.localhost:9080/auth/callback"
+#   az ad app update --id "$APP_ID" --web-redirect-uris "https://backstage.konstruct.teknologik8s.nl/api/auth/microsoft/handler/frame" "https://argocd.konstruct.teknologik8s.nl/auth/callback" "https://argocd.workload.teknologik8s.nl:9443/auth/callback"
 
 az ad app permission add --id "$APP_ID" \
   --api 00000003-0000-0000-c000-000000000000 \
@@ -370,7 +370,7 @@ CLOUD_SP_TENANT_ID=""
 
 ```bash
 # Create clusters
-k3d cluster create "$HUB_CLUSTER_NAME" --api-port 6550 --servers 1 -p "8080:80@loadbalancer" -p "8443:443@loadbalancer" --k3s-arg '--kube-proxy-arg=proxy-mode=ipvs@server:*'
+k3d cluster create "$HUB_CLUSTER_NAME" --api-port 6550 --servers 1 -p "8080:80@loadbalancer" -p "443:443@loadbalancer" --k3s-arg '--kube-proxy-arg=proxy-mode=ipvs@server:*'
 k3d cluster create "$WORKLOAD_CLUSTER_NAME" --api-port 6551 --servers 1 -p "9080:80@loadbalancer" -p "9443:443@loadbalancer" --k3s-arg '--kube-proxy-arg=proxy-mode=ipvs@server:*'
 
 # Verify both contexts are available

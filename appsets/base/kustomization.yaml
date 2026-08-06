@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - tenant-platform-controllers.yaml
   - tenant-platform-configs.yaml
+  - argocd-configs.yaml
