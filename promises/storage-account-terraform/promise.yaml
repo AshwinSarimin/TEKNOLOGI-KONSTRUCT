@@ -3,7 +3,7 @@ kind: Promise
 metadata:
   name: storage-account-terraform
 spec:
-  # StorageAccountTerraformRequest CRD — Terraform-backed variant, kept for comparison with the Crossplane promise
+  # StorageAccountTerraformRequest CRD
   api:
     apiVersion: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
@@ -47,17 +47,12 @@ spec:
                     type: string
                     description: "Azure resource group to provision the storage account into"
 
-  # Destination label matches the Kratix Destination object (not the ArgoCD cluster secret)
+  # Destination label matches the Kratix Destination object
   destinationSelectors:
   - matchLabels:
       kratix.destination: "true"
 
-  # No dependencies needed: Terraform-backed Promises have no XRD/Composition to deploy
-  # to the workload cluster.
-
-  # Pipeline — runs when a team creates a StorageAccountTerraformRequest.
-  # Terraform is synchronous: the configure container provisions the storage account
-  # and posts both Slack notifications (started + live) itself.
+  # Pipeline
   workflows:
     resource:
       configure:
