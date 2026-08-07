@@ -13,7 +13,6 @@ spec:
   description: "Example team for testing the onboarding Promise"
   environment: dev
   location: westeurope
-  resourceGroupName: teknologi-eur1-prd-platform-rg
   resources:
     namespace: true
     keyvault: false

@@ -61,10 +61,6 @@ spec:
                     type: string
                     description: "Azure region"
                     default: westeurope
-                  resourceGroupName:
-                    type: string
-                    description: "Azure resource group"
-                    default: teknologi-eur1-prd-platform-rg
                   resources:
                     type: object
                     description: "Which resources to provision"

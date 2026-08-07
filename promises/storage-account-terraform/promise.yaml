@@ -29,6 +29,7 @@ spec:
                 required:
                 - appName
                 - environment
+                - resourceGroupName
                 properties:
                   appName:
                     type: string
@@ -44,8 +45,7 @@ spec:
                     default: westeurope
                   resourceGroupName:
                     type: string
-                    description: "Azure resource group (default: teknologi-eur1-prd-platform-rg)"
-                    default: teknologi-eur1-prd-platform-rg
+                    description: "Azure resource group to provision the storage account into"
 
   # Destination label matches the Kratix Destination object (not the ArgoCD cluster secret)
   destinationSelectors:

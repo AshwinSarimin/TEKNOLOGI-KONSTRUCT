@@ -63,9 +63,6 @@ func main() {
 	if req.Spec.Location == "" {
 		req.Spec.Location = "westeurope"
 	}
-	if req.Spec.ResourceGroupName == "" {
-		req.Spec.ResourceGroupName = "teknologi-eur1-prd-platform-rg"
-	}
 
 	saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
 	log.Printf("Processing StorageAccountRequest: team=%s env=%s saName=%s", req.Spec.AppName, req.Spec.Environment, saName)

@@ -29,7 +29,6 @@ type Request struct {
 		TeamMembers        []string  `yaml:"teamMembers"`
 		Environment        string    `yaml:"environment"`
 		Location           string    `yaml:"location"`
-		ResourceGroupName  string    `yaml:"resourceGroupName"`
 		Resources          Resources `yaml:"resources"`
 	} `yaml:"spec"`
 }
@@ -61,8 +60,5 @@ func applyDefaults(req *Request) {
 	}
 	if req.Spec.Location == "" {
 		req.Spec.Location = "westeurope"
-	}
-	if req.Spec.ResourceGroupName == "" {
-		req.Spec.ResourceGroupName = "teknologi-eur1-prd-platform-rg"
 	}
 }

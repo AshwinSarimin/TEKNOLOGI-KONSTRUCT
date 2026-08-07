@@ -52,9 +52,6 @@ func main() {
 	if req.Spec.Location == "" {
 		req.Spec.Location = "westeurope"
 	}
-	if req.Spec.ResourceGroupName == "" {
-		req.Spec.ResourceGroupName = "teknologi-eur1-prd-platform-rg"
-	}
 
 	log.Printf("Processing StorageAccountRequest: team=%s env=%s location=%s rg=%s",
 		req.Spec.AppName, req.Spec.Environment, req.Spec.Location, req.Spec.ResourceGroupName)
