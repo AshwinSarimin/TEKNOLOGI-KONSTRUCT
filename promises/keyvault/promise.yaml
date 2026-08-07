@@ -47,13 +47,13 @@ spec:
                     type: string
                     description: "Azure resource group to provision the Key Vault into"
 
-  # Destination label matches the Kratix Destination object (not the ArgoCD cluster secret)
+  # Destination label matches the Kratix Destination object
   destinationSelectors:
   - matchLabels:
       kratix.destination: "true"
 
   # Deploy XRD and Composition to destination before scheduling requests.
-  # notify-watcher RBAC is deployed independently — see tenants/platform/notify-watcher-rbac.
+  # notify-watcher RBAC is deployed independently
   dependencies:
   - apiVersion: apiextensions.crossplane.io/v1
     kind: CompositeResourceDefinition
@@ -82,7 +82,7 @@ spec:
                     type: string
                   tenantId:
                     type: string
-                    description: "Azure tenant ID — injected by the pipeline from platform secrets"
+                    description: "Azure tenant ID"
                   environment:
                     type: string
                     default: dev
@@ -165,7 +165,7 @@ spec:
           policy:
             fromFieldPath: Optional
 
-  # Pipeline — runs when a team creates a KeyVaultRequest
+  # Pipeline
   workflows:
     resource:
       configure:

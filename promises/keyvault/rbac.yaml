@@ -7,8 +7,6 @@ rules:
   resources: ["keyvaultrequests"]
   verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
 ---
-# All Promise requests are submitted to the kratix-workloads namespace.
-# TeamOnboarding Promise creates team namespaces on the workload cluster.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
