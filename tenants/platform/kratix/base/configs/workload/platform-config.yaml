@@ -8,3 +8,4 @@ metadata:
   namespace: kratix-workloads
 data:
   argocdUrl: https://argocd.konstruct.teknologik8s.nl
+  azureTenantId: 99f9af3a-fd8b-41ec-b487-483a0c562b5c

@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="4270" dy="-1248" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="4504" dy="-1162" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" style="locked=0;" />
@@ -654,6 +654,12 @@
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-311" parent="DTOTCtgB_hKucLkh7eAS-7" style="whiteSpace=wrap;html=1;shape=mxgraph.basic.document;strokeColor=#FFE599;" value="Promise&lt;div&gt;&lt;div&gt;CR example&lt;/div&gt;&lt;div&gt;manifest&lt;/div&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="71" width="89" x="174.5" y="2290" as="geometry" />
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-314" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=secret" value="github-app" vertex="1">
+          <mxGeometry height="48" width="50" x="1790" y="3423.64" as="geometry" />
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-315" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-185" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-314">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

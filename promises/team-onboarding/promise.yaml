@@ -275,6 +275,6 @@ spec:
                   key: privateKey
             - name: AZURE_TENANT_ID
               valueFrom:
-                secretKeyRef:
-                  name: terraform-azure-creds
-                  key: tenant_id
+                configMapKeyRef:
+                  name: platform-config
+                  key: azureTenantId

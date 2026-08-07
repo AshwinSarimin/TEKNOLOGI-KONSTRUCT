@@ -191,9 +191,9 @@ spec:
             env:
             - name: AZURE_TENANT_ID
               valueFrom:
-                secretKeyRef:
-                  name: terraform-azure-creds
-                  key: tenant_id
+                configMapKeyRef:
+                  name: platform-config
+                  key: azureTenantId
           # Stage 1: posts "request accepted" + writes stage 2 watcher Job to /kratix/output
           - name: notify
             image: teknologieur1acr.azurecr.io/kratix-notify:latest
