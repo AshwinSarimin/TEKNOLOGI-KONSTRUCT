@@ -1,0 +1,232 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: Promise
+metadata:
+  name: namespace
+spec:
+  # NamespaceRequest CRD — what teams submit to request a namespace
+  api:
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      name: namespacerequests.marketplace.kratix.io
+    spec:
+      group: marketplace.kratix.io
+      scope: Namespaced
+      names:
+        kind: NamespaceRequest
+        plural: namespacerequests
+        singular: namespacerequest
+      versions:
+      - name: v1alpha1
+        served: true
+        storage: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                required:
+                - namespaceName
+                properties:
+                  namespaceName:
+                    type: string
+                    description: "Namespace name — lowercase, hyphenated (e.g. features-dev)"
+                  environment:
+                    type: string
+                    description: "Deployment environment"
+                    default: dev
+                    enum: [dev, tst, acc, prd]
+                  networkVisibility:
+                    type: string
+                    description: "Network access policy"
+                    default: private
+                    enum: [private, public]
+
+  # Where to schedule output (workload clusters)
+  destinationSelectors:
+  - matchLabels:
+      kratix.destination: "true"
+
+  # Deploy XRD and Composition to destination before scheduling requests
+  dependencies:
+  # RBAC for the stage 2 notify watcher Job (runs on workload cluster after sync)
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: notify-watcher
+      namespace: default
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: notify-watcher
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    rules:
+    - apiGroups: ["platform.teknologi.io"]
+      resources: ["*"]
+      verbs: ["get", "list", "watch"]
+    # Lets stage 2 record a durable, queryable Event alongside (not instead of) its
+    # Slack post — record/alert separation: Slack can be down or misconfigured and
+    # the fact that notification fired is still recoverable via `kubectl get events`.
+    - apiGroups: [""]
+      resources: ["events"]
+      verbs: ["create"]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: notify-watcher
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: notify-watcher
+    subjects:
+    - kind: ServiceAccount
+      name: notify-watcher
+      namespace: default
+  - apiVersion: apiextensions.crossplane.io/v1
+    kind: CompositeResourceDefinition
+    metadata:
+      name: xnamespaces.platform.teknologi.io
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      group: platform.teknologi.io
+      names:
+        kind: XNamespace
+        plural: xnamespaces
+      versions:
+      - name: v1alpha1
+        served: true
+        referenceable: true
+        schema:
+          openAPIV3Schema:
+            type: object
+            properties:
+              spec:
+                type: object
+                required: [namespaceName]
+                properties:
+                  namespaceName:
+                    type: string
+                  environment:
+                    type: string
+                    default: dev
+                    enum: [dev, tst, acc, prd]
+                  networkVisibility:
+                    type: string
+                    default: private
+                    enum: [private, public]
+              status:
+                type: object
+                properties:
+                  namespaceName:
+                    type: string
+  - apiVersion: apiextensions.crossplane.io/v1
+    kind: Composition
+    metadata:
+      name: xnamespace-kubernetes
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+      labels:
+        provider: kubernetes
+    spec:
+      compositeTypeRef:
+        apiVersion: platform.teknologi.io/v1alpha1
+        kind: XNamespace
+      mode: Resources
+      resources:
+      - name: namespace
+        base:
+          apiVersion: kubernetes.crossplane.io/v1alpha2
+          kind: Object
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: placeholder
+                  labels:
+                    teknologi.io/managed-by: crossplane
+                    teknologi.io/team: placeholder
+                    teknologi.io/environment: placeholder
+            providerConfigRef:
+              name: kubernetes-in-cluster
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.namespaceName
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.namespaceName
+          toFieldPath: spec.forProvider.manifest.metadata.labels["teknologi.io/team"]
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.environment
+          toFieldPath: spec.forProvider.manifest.metadata.labels["teknologi.io/environment"]
+        - type: ToCompositeFieldPath
+          fromFieldPath: spec.forProvider.manifest.metadata.name
+          toFieldPath: status.namespaceName
+
+  # Pipeline — runs when a team creates a NamespaceRequest
+  workflows:
+    resource:
+      configure:
+      - apiVersion: platform.kratix.io/v1alpha1
+        kind: Pipeline
+        metadata:
+          name: configure-namespace
+        spec:
+          imagePullSecrets:
+          - name: acr-credentials
+          containers:
+          - name: configure-namespace
+            image: teknologieur1acr.azurecr.io/kratix-namespace:latest
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: [ALL]
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile:
+                type: RuntimeDefault
+            env:
+            - name: CLOUDFLARE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-api-token
+                  key: token
+                  optional: true
+            - name: CLOUDFLARE_ZONE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-api-token
+                  key: zoneId
+                  optional: true
+          # Stage 1: posts "request accepted" to Slack + writes the stage 2 watcher Job to /kratix/output
+          - name: notify
+            image: teknologieur1acr.azurecr.io/kratix-notify:latest
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: [ALL]
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile:
+                type: RuntimeDefault
+            env:
+            - name: NOTIFY_STAGE
+              value: "1"
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: slack-webhook
+                  key: url
+                  optional: true
+            - name: ARGOCD_URL
+              value: "https://argocd.localhost"

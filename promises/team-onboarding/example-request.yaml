@@ -1,0 +1,20 @@
+# Test with: kubectl apply -f example-request.yaml --context k3d-k3d-teknologi-hub-cluster
+# Triggers the PR-gated flow: opens a PR in TEKNOLOGI-KONSTRUCT-STATE, waits for merge
+# (pr-watcher, native retryAfter), then provisions the resources selected below.
+apiVersion: marketplace.kratix.io/v1alpha1
+kind: TeamOnboardingRequest
+metadata:
+  name: app-b-dev-onboarding
+  namespace: kratix-workloads
+spec:
+  appName: app-b
+  displayName: "App B Team"
+  businessUnit: sat
+  description: "Example team for testing the onboarding Promise"
+  environment: dev
+  location: westeurope
+  resourceGroupName: teknologi-eur1-prd-platform-rg
+  resources:
+    namespace: true
+    keyvault: false
+    storageAccount: false

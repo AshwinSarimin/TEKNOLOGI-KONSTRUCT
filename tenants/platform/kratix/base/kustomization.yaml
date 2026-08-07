@@ -1,16 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - configs/core/kratix-workloads-namespace.yaml
   - configs/core/acr-credentials.yaml
-  - configs/core/destination.yaml
   - configs/core/git-state-store.yaml
+  - configs/core/destination.yaml
   - configs/core/networkpolicy.yaml
-  - configs/core/slack-credentials.yaml
-  - configs/core/terraform-credentials.yaml
-  - configs/promises/keyvault-rbac.yaml
-  - configs/promises/storage-account-rbac.yaml
-  - configs/promises/storage-account-terraform-rbac.yaml
-  - configs/promises/team-onboarding-rbac.yaml
+  - configs/workload/namespace.yaml
+  - configs/workload/slack-credentials.yaml
+  - configs/workload/acr-credentials.yaml
+  - configs/workload/terraform-credentials.yaml
+  - configs/workload/networkpolicy.yaml
 
   

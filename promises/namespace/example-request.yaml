@@ -1,0 +1,10 @@
+# Test with: kubectl apply -f example-request.yaml --context k3d-k3d-teknologi-hub-cluster
+apiVersion: marketplace.kratix.io/v1alpha1
+kind: NamespaceRequest
+metadata:
+  name: app-a-dev-ns
+  namespace: kratix-workloads
+spec:
+  namespaceName: app-a-dev
+  environment: dev
+  networkVisibility: private

@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
-  namespace: kratix-platform-system
+  namespace: kratix-workloads
 spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
@@ -11,7 +11,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-dns
-  namespace: kratix-platform-system
+  namespace: kratix-workloads
 spec:
   podSelector: {}
   policyTypes: [Egress]
@@ -33,7 +33,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-kube-apiserver
-  namespace: kratix-platform-system
+  namespace: kratix-workloads
 spec:
   podSelector: {}
   policyTypes: [Egress]
@@ -49,12 +49,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-internet-egress
-  namespace: kratix-platform-system
+  namespace: kratix-workloads
 spec:
   podSelector: {}
   policyTypes: [Egress]
   egress:
-  # GitStateStore pushes to TEKNOLOGI-PLATFORM-ORCHESTRATION on GitHub
   - to:
     - ipBlock:
         cidr: 0.0.0.0/0
