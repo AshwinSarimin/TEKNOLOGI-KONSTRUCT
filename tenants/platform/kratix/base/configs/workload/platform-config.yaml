@@ -1,0 +1,10 @@
+# Non-secret platform values shared across Promise pipelines — avoids hardcoding
+# these as literals in every promise.yaml. Not an ExternalSecret: nothing here
+# is sensitive, so a plain ConfigMap is the right primitive.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: kratix-workloads
+data:
+  argocdUrl: https://argocd.konstruct.teknologik8s.nl

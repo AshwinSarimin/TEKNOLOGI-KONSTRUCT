@@ -7,6 +7,7 @@ resources:
   - configs/core/destination.yaml
   - configs/core/networkpolicy.yaml
   - configs/workload/namespace.yaml
+  - configs/workload/platform-config.yaml
   - configs/workload/slack-credentials.yaml
   - configs/workload/acr-credentials.yaml
   - configs/workload/github-app-credentials.yaml

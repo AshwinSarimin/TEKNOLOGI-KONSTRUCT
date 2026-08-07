@@ -228,7 +228,10 @@ spec:
                   key: url
                   optional: true
             - name: ARGOCD_URL
-              value: "https://argocd.localhost"
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: argocdUrl
       # pr-watcher is its own Pipeline entry (its own Job), not another container
       # alongside configure-team-onboarding/notify above. Kratix's suspend/retry
       # mechanism (workflow-control.yaml) operates at the Pipeline level: if

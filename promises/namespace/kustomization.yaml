@@ -2,3 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - promise.yaml
+images:
+- name: teknologieur1acr.azurecr.io/kratix-namespace
+  newTag: latest
+- name: teknologieur1acr.azurecr.io/kratix-notify
+  newTag: latest

@@ -3,3 +3,6 @@ kind: Kustomization
 resources:
 - promise.yaml
 - rbac.yaml
+images:
+- name: teknologieur1acr.azurecr.io/kratix-storage-account-terraform
+  newTag: latest

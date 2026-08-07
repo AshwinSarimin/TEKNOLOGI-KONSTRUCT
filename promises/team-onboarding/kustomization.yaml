@@ -3,3 +3,8 @@ kind: Kustomization
 resources:
 - promise.yaml
 - rbac.yaml
+images:
+- name: teknologieur1acr.azurecr.io/kratix-team-onboarding
+  newTag: latest
+- name: teknologieur1acr.azurecr.io/kratix-notify
+  newTag: latest

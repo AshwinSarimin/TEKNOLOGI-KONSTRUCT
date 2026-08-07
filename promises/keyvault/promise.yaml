@@ -217,4 +217,7 @@ spec:
                   key: url
                   optional: true
             - name: ARGOCD_URL
-              value: "https://argocd.localhost"
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: argocdUrl
