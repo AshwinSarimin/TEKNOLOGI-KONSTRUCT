@@ -53,7 +53,7 @@ spec:
       kratix.destination: "true"
 
   # Deploy XRD and Composition to destination before scheduling requests.
-  # notify-watcher SA/ClusterRole/CRB are defined in the namespace Promise — not repeated here.
+  # notify-watcher RBAC is deployed independently — see tenants/platform/notify-watcher-rbac.
   dependencies:
   - apiVersion: apiextensions.crossplane.io/v1
     kind: CompositeResourceDefinition

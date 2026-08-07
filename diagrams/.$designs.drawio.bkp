@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="4504" dy="-1162" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="3242" dy="-1629" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" style="locked=0;" />
@@ -196,6 +196,20 @@
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-181" connectable="0" parent="DTOTCtgB_hKucLkh7eAS-180" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Sync" vertex="1">
           <mxGeometry relative="1" x="-0.7121" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-318" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-118" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-170">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2330" y="2950" />
+              <mxPoint x="1120" y="2950" />
+              <mxPoint x="1120" y="2725.4" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-319" connectable="0" parent="DTOTCtgB_hKucLkh7eAS-318" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Sync" vertex="1">
+          <mxGeometry relative="1" x="-0.7588" y="-1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
@@ -660,6 +674,17 @@
         </mxCell>
         <mxCell id="DTOTCtgB_hKucLkh7eAS-315" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-185" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-314">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-316" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=cm" value="platform-config" vertex="1">
+          <mxGeometry height="48" width="50" x="1910" y="3424" as="geometry" />
+        </mxCell>
+        <mxCell id="DTOTCtgB_hKucLkh7eAS-317" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-316" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.9;entryY=0.2;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-185">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1935.04" y="3360.04" />
+              <mxPoint x="1255.04" y="3360.04" />
+            </Array>
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>

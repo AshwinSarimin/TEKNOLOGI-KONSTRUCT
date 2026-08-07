@@ -48,46 +48,10 @@ spec:
   - matchLabels:
       kratix.destination: "true"
 
-  # Deploy XRD and Composition to destination before scheduling requests
+  # Deploy XRD and Composition to destination before scheduling requests.
+  # notify-watcher RBAC is deployed independently — see tenants/platform/notify-watcher-rbac
+  # (not a Promise dependency, so it doesn't depend on this or any specific Promise being installed first).
   dependencies:
-  # RBAC for the stage 2 notify watcher Job (runs on workload cluster after sync)
-  - apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: notify-watcher
-      namespace: default
-      annotations:
-        argocd.argoproj.io/sync-wave: "0"
-  - apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRole
-    metadata:
-      name: notify-watcher
-      annotations:
-        argocd.argoproj.io/sync-wave: "0"
-    rules:
-    - apiGroups: ["platform.teknologi.io"]
-      resources: ["*"]
-      verbs: ["get", "list", "watch"]
-    # Lets stage 2 record a durable, queryable Event alongside (not instead of) its
-    # Slack post — record/alert separation: Slack can be down or misconfigured and
-    # the fact that notification fired is still recoverable via `kubectl get events`.
-    - apiGroups: [""]
-      resources: ["events"]
-      verbs: ["create"]
-  - apiVersion: rbac.authorization.k8s.io/v1
-    kind: ClusterRoleBinding
-    metadata:
-      name: notify-watcher
-      annotations:
-        argocd.argoproj.io/sync-wave: "0"
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: ClusterRole
-      name: notify-watcher
-    subjects:
-    - kind: ServiceAccount
-      name: notify-watcher
-      namespace: default
   - apiVersion: apiextensions.crossplane.io/v1
     kind: CompositeResourceDefinition
     metadata:

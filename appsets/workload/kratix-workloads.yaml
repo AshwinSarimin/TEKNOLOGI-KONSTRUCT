@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kratix-workloads
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          platform.kratix-workloads: "true"
+  template:
+    metadata:
+      name: 'kratix-workloads'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE.git
+        targetRevision: feature/setup_infra
+        path: '{{.name}}'
+        directory:
+          recurse: true
+      destination:
+        name: '{{.name}}'
+        namespace: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        - SkipDryRunOnMissingResource=true  # XNamespace CRD registered by Crossplane after XRD applies
