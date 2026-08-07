@@ -2,12 +2,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - configs/core/acr-credentials.yaml
+  - configs/core/github-app-credentials.yaml
   - configs/core/git-state-store.yaml
   - configs/core/destination.yaml
   - configs/core/networkpolicy.yaml
   - configs/workload/namespace.yaml
   - configs/workload/slack-credentials.yaml
   - configs/workload/acr-credentials.yaml
+  - configs/workload/github-app-credentials.yaml
   - configs/workload/terraform-credentials.yaml
   - configs/workload/networkpolicy.yaml
 
