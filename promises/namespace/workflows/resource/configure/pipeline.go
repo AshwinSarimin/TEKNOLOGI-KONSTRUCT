@@ -183,6 +183,7 @@ func writeStatus(req Request) error {
 		"resourceName":       req.Spec.NamespaceName,
 		"resourceType":       "Namespace",
 		"requesterNamespace": req.Metadata.Namespace,
+		"xrPlural":           "xnamespaces",
 	}
 	notifyData, err := json.MarshalIndent(notify, "", "  ")
 	if err != nil {
