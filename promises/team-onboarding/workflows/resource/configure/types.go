@@ -53,12 +53,3 @@ func requireEnv(key string) string {
 	}
 	return v
 }
-
-func applyDefaults(req *Request) {
-	if req.Spec.Environment == "" {
-		req.Spec.Environment = "dev"
-	}
-	if req.Spec.Location == "" {
-		req.Spec.Location = "westeurope"
-	}
-}

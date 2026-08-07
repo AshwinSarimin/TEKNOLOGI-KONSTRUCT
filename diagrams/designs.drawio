@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="3323" dy="-1599" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2581" dy="-1874" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" style="locked=0;" />
@@ -795,7 +795,7 @@
           <mxGeometry height="68" width="68" x="2990" y="3460" as="geometry" />
         </mxCell>
         <mxCell id="GaVICOuH63ULp3C2RWeI-39" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=crd" value="XKeyVault&lt;div&gt;Crossplane Composition&lt;/div&gt;&lt;div&gt;CR&lt;/div&gt;" vertex="1">
-          <mxGeometry height="48" width="50" x="2580" y="3470" as="geometry" />
+          <mxGeometry height="48" width="50" x="2670" y="3520" as="geometry" />
         </mxCell>
         <mxCell id="GaVICOuH63ULp3C2RWeI-49" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="GaVICOuH63ULp3C2RWeI-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;dashed=1;" target="DTOTCtgB_hKucLkh7eAS-123">
           <mxGeometry relative="1" as="geometry" />
@@ -829,6 +829,24 @@
           <mxGeometry relative="1" x="0.6571" y="-1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="GaVICOuH63ULp3C2RWeI-51" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=crd" value="XNamespace&lt;div&gt;Crossplane Composition&lt;/div&gt;&lt;div&gt;CR&lt;/div&gt;" vertex="1">
+          <mxGeometry height="48" width="50" x="2540" y="3520" as="geometry" />
+        </mxCell>
+        <mxCell id="GaVICOuH63ULp3C2RWeI-53" parent="DTOTCtgB_hKucLkh7eAS-7" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=ns" value="default" vertex="1">
+          <mxGeometry height="48" width="50" x="2560" y="3646" as="geometry" />
+        </mxCell>
+        <mxCell id="GaVICOuH63ULp3C2RWeI-54" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="GaVICOuH63ULp3C2RWeI-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="GaVICOuH63ULp3C2RWeI-53">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="GaVICOuH63ULp3C2RWeI-55" parent="DTOTCtgB_hKucLkh7eAS-7" style="whiteSpace=wrap;html=1;shape=mxgraph.basic.document;strokeColor=#FFE599;" value="Shared&lt;div&gt;notify container&lt;/div&gt;&lt;div&gt;manifests&lt;/div&gt;" vertex="1">
+          <mxGeometry height="71" width="89" x="294.5" y="2556" as="geometry" />
+        </mxCell>
+        <mxCell id="GaVICOuH63ULp3C2RWeI-56" parent="DTOTCtgB_hKucLkh7eAS-7" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Docker.svg;" value="" vertex="1">
+          <mxGeometry height="31.98" width="39" x="280" y="2616" as="geometry" />
+        </mxCell>
+        <mxCell id="GaVICOuH63ULp3C2RWeI-57" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="DTOTCtgB_hKucLkh7eAS-178" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" target="GaVICOuH63ULp3C2RWeI-55">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

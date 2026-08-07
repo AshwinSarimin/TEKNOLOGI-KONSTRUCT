@@ -30,8 +30,6 @@ func runConfigure() {
 	if err := yaml.Unmarshal(raw, &req); err != nil {
 		log.Fatalf("parse request: %v", err)
 	}
-	applyDefaults(&req)
-
 	gh, err := newGitHubClient()
 	if err != nil {
 		log.Fatalf("github client: %v", err)

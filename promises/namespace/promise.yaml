@@ -43,14 +43,12 @@ spec:
                     default: private
                     enum: [private, public]
 
-  # Where to schedule output (workload clusters)
+  # Where to schedule output
   destinationSelectors:
   - matchLabels:
       kratix.destination: "true"
 
   # Deploy XRD and Composition to destination before scheduling requests.
-  # notify-watcher RBAC is deployed independently — see tenants/platform/notify-watcher-rbac
-  # (not a Promise dependency, so it doesn't depend on this or any specific Promise being installed first).
   dependencies:
   - apiVersion: apiextensions.crossplane.io/v1
     kind: CompositeResourceDefinition
@@ -135,7 +133,7 @@ spec:
           fromFieldPath: spec.forProvider.manifest.metadata.name
           toFieldPath: status.namespaceName
 
-  # Pipeline — runs when a team creates a NamespaceRequest
+  # Pipeline
   workflows:
     resource:
       configure:
@@ -158,19 +156,6 @@ spec:
               runAsGroup: 65532
               seccompProfile:
                 type: RuntimeDefault
-            env:
-            - name: CLOUDFLARE_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: cloudflare-api-token
-                  key: token
-                  optional: true
-            - name: CLOUDFLARE_ZONE_ID
-              valueFrom:
-                secretKeyRef:
-                  name: cloudflare-api-token
-                  key: zoneId
-                  optional: true
           # Stage 1: posts "request accepted" to Slack + writes the stage 2 watcher Job to /kratix/output
           - name: notify
             image: teknologieur1acr.azurecr.io/kratix-notify:latest

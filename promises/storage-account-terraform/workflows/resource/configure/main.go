@@ -45,14 +45,6 @@ func main() {
 		log.Fatalf("Failed to parse request: %v", err)
 	}
 
-	// Apply defaults
-	if req.Spec.Environment == "" {
-		req.Spec.Environment = "dev"
-	}
-	if req.Spec.Location == "" {
-		req.Spec.Location = "westeurope"
-	}
-
 	log.Printf("Processing StorageAccountRequest: team=%s env=%s location=%s rg=%s",
 		req.Spec.AppName, req.Spec.Environment, req.Spec.Location, req.Spec.ResourceGroupName)
 
