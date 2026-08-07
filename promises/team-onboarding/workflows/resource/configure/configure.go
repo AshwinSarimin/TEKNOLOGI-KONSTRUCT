@@ -10,11 +10,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	orchestrationOwner = "AshwinSarimin"
-	orchestrationRepo  = "TEKNOLOGI-PLATFORM-ORCHESTRATION"
-	baseBranch         = "main"
+// orchestrationOwner/orchestrationRepo/baseBranch address every GitHub API call
+// in this package (getFileContent, createBranch, putFile, createPullRequest,
+// findPR, getPullRequest all need to know which repo, which branch). Sourced
+// from platform-config (ConfigMap).
+var (
+	orchestrationOwner string
+	orchestrationRepo  string
+	baseBranch         string
 )
+
+func init() {
+	orchestrationOwner = requireEnv("ORCHESTRATION_OWNER")
+	orchestrationRepo = requireEnv("ORCHESTRATION_REPO")
+	baseBranch = requireEnv("ORCHESTRATION_BASE_BRANCH")
+}
 
 // runConfigure opens a single PR in the ORCHESTRATION repo containing the team's SSoT
 // definition, and records phase=waiting-for-pr-merge. It does NOT provision any
@@ -39,7 +49,7 @@ func runConfigure() {
 	teamYAML := renderTeamEntity(req)
 
 	// Kratix re-runs this configure workflow for every existing resource whenever
-	// the Promise definition changes (see Experiments.md) — without this check,
+	// the Promise definition changes. Without this check,
 	// every promise.yaml update would re-open an approval PR for teams that are
 	// already onboarded and provisioned. If the team file already exists on main
 	// with exactly the content we'd render, there's nothing to review: skip the
@@ -135,11 +145,14 @@ func writeConfigureStatus(req Request, prURL string) {
 
 func writeNotify(req Request) {
 	notify := map[string]string{
-		// Must match the XNamespace XR name ({appName}-{env}) — the stage-2 notify job
-		// polls that XR for readiness.
-		"resourceName":       fmt.Sprintf("%s-%s", req.Spec.AppName, req.Spec.Environment),
+		// Points stage 2 at the XResourceGroup, not one of the three optional
+		// resources (namespace/keyvault/storageAccount) — XResourceGroup is the
+		// only one writeXROutputs always creates regardless of which toggles are
+		// set, so it's the one thing "TeamOnboarding is live" can always mean.
+		"resourceName":       resourceGroupName(req.Spec.AppName, req.Spec.Environment),
 		"resourceType":       "TeamOnboarding",
 		"requesterNamespace": req.Metadata.Namespace,
+		"xrPlural":           "xresourcegroups",
 	}
 	data, _ := json.MarshalIndent(notify, "", "  ")
 	if err := ioutil.WriteFile("/kratix/metadata/notify.json", data, 0644); err != nil {

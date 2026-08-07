@@ -188,6 +188,21 @@ spec:
             env:
             - name: STAGE
               value: "configure"
+            - name: ORCHESTRATION_OWNER
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: orchestrationOwner
+            - name: ORCHESTRATION_REPO
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: orchestrationRepo
+            - name: ORCHESTRATION_BASE_BRANCH
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: orchestrationBaseBranch
             - name: GITHUB_APP_ID
               valueFrom:
                 secretKeyRef:
@@ -258,6 +273,21 @@ spec:
             env:
             - name: STAGE
               value: "watch"
+            - name: ORCHESTRATION_OWNER
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: orchestrationOwner
+            - name: ORCHESTRATION_REPO
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: orchestrationRepo
+            - name: ORCHESTRATION_BASE_BRANCH
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: orchestrationBaseBranch
             - name: GITHUB_APP_ID
               valueFrom:
                 secretKeyRef:

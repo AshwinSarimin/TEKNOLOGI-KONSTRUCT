@@ -18,7 +18,7 @@ const githubAPIBase = "https://api.github.com"
 
 // githubClient authenticates as a GitHub App installation. Mints its own short-lived
 // installation access token from the App's private key — same mechanism Backstage uses
-// for its own GitHub integration (see backstage/app/.../app-config.yaml integrations.github).
+// for its own GitHub integration.
 type githubClient struct {
 	hc    *http.Client
 	token string

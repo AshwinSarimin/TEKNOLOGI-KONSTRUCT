@@ -1,6 +1,3 @@
-# Test with: kubectl apply -f example-request.yaml --context k3d-k3d-teknologi-hub-cluster
-# Triggers the PR-gated flow: opens a PR in TEKNOLOGI-KONSTRUCT-STATE, waits for merge
-# (pr-watcher, native retryAfter), then provisions the resources selected below.
 apiVersion: marketplace.kratix.io/v1alpha1
 kind: TeamOnboardingRequest
 metadata:
