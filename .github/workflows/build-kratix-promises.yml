@@ -1,0 +1,129 @@
+name: Build and push Kratix Promises to ACR
+
+on:
+  push:
+    branches:
+      - main
+      - feature/setup_infra
+    paths:
+      - 'promises/*/workflows/**'
+      - 'promises/shared/**'
+      - '.github/workflows/build-kratix-promises.yml'
+
+env:
+  REGISTRY: teknologieur1acr.azurecr.io
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  detect-promises:
+    name: Detect promise pipelines
+    runs-on: ubuntu-latest
+    outputs:
+      promises: ${{ steps.find.outputs.promises }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Find all promise pipelines
+        id: find
+        run: |
+          promises=$(find promises -name Dockerfile -path "*/resource/configure/Dockerfile" \
+            | sed 's|promises/||;s|/workflows.*||' \
+            | sort -u \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "promises=$promises" >> $GITHUB_OUTPUT
+          echo "Detected: $promises"
+  detect-shared:
+    name: Detect shared containers
+    runs-on: ubuntu-latest
+    outputs:
+      containers: ${{ steps.find.outputs.containers }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Find shared containers
+        id: find
+        run: |
+          containers=$(find promises/shared -name Dockerfile -maxdepth 2 \
+            | sed 's|promises/shared/||;s|/Dockerfile||' \
+            | sort -u \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "containers=$containers" >> $GITHUB_OUTPUT
+          echo "Detected: $containers"
+  build-and-push:
+    name: Build ${{ matrix.promise }}
+    needs: detect-promises
+    if: needs.detect-promises.outputs.promises != '[]'
+    environment: prd
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        promise: ${{ fromJson(needs.detect-promises.outputs.promises) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          lfs: false
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+      - name: Login to ACR
+        run: az acr login --name ${{ env.REGISTRY }}
+      - name: Build and Push Docker Image
+        run: |
+          cd promises/${{ matrix.promise }}/workflows/resource/configure
+          docker build \
+            -t ${{ env.REGISTRY }}/kratix-${{ matrix.promise }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/kratix-${{ matrix.promise }}:latest \
+            .
+          docker push ${{ env.REGISTRY }}/kratix-${{ matrix.promise }}:latest
+          docker push ${{ env.REGISTRY }}/kratix-${{ matrix.promise }}:${{ github.sha }}
+      - name: Verify image in ACR
+        run: |
+          az acr repository show-tags \
+            --name teknologieur1acr \
+            --repository kratix-${{ matrix.promise }} \
+            --output table
+  build-shared:
+    name: Build shared/${{ matrix.container }}
+    needs: detect-shared
+    if: needs.detect-shared.outputs.containers != '[]'
+    environment: prd
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        container: ${{ fromJson(needs.detect-shared.outputs.containers) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+      - name: Login to ACR
+        run: az acr login --name ${{ env.REGISTRY }}
+      - name: Build and Push Shared Container
+        run: |
+          cd promises/shared/${{ matrix.container }}
+          docker build \
+            -t ${{ env.REGISTRY }}/kratix-${{ matrix.container }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/kratix-${{ matrix.container }}:latest \
+            .
+          docker push ${{ env.REGISTRY }}/kratix-${{ matrix.container }}:latest
+          docker push ${{ env.REGISTRY }}/kratix-${{ matrix.container }}:${{ github.sha }}
+      - name: Verify image in ACR
+        run: |
+          az acr repository show-tags \
+            --name teknologieur1acr \
+            --repository kratix-${{ matrix.container }} \
+            --output table
