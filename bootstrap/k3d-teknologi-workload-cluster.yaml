@@ -9,13 +9,14 @@ metadata:
     cluster-name: k3d-teknologi-workload-cluster
     cluster-type: dev
     cluster-role: workload
-    platform.external-secrets: "true"
     platform.cert-manager: "true"
+    platform.external-secrets: "true"
     platform.argocd: "true"
     platform.backstage: "false"
     platform.kratix: "false"
-    platform.crossplane: "false" #true
+    platform.crossplane: "true"
     platform.kratix-workloads: "false" #true
+    platform.rest-api: "false"
 type: Opaque
 stringData:
   name: k3d-teknologi-workload-cluster

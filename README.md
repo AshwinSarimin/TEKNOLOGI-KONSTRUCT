@@ -8,7 +8,7 @@ Complete setup of Kratix platform with ArgoCD, Backstage, Crossplane, and multi-
 
 **URLs**
 Kratix ArgoCD:   https://argocd.konstruct.teknologik8s.nl
-Workload ArgoCD: https://argocd.workload.teknologik8s.nl
+Workload ArgoCD: https://argocd.workload.teknologik8s.nl:9443
 Backstage:       http://backstage.localhost:8080
 
 ## Prerequisites
@@ -527,7 +527,7 @@ kubectl apply -f bootstrap/k3d-teknologi-hub-cluster.yaml --context "$HUB_CONFIG
 ```bash
 # Bootstrap
 kubectl apply -f bootstrap/k3d-teknologi-workload-cluster.yaml --context "$WORKLOAD_CONFIG_NAME"
-
+```
 
 -------------------------------
 
