@@ -1,8 +1,5 @@
 # RBAC every Promise's shared "notify" container needs for its stage-2 job
-# (poll XR status, record a durable Event alongside its Slack post). Deployed
-# directly to the workload cluster, independent of which Promises are
-# installed — not a Promise `dependencies` entry, so there's no implicit
-# ordering requirement on any one specific Promise being installed first.
+# (poll XR status, record a durable Event alongside its Slack post).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -18,7 +15,7 @@ rules:
   resources: ["*"]
   verbs: ["get", "list", "watch"]
 # Lets stage 2 record a durable, queryable Event alongside (not instead of) its
-# Slack post — record/alert separation: Slack can be down or misconfigured and
+# Slack post. Slack can be down or misconfigured and
 # the fact that notification fired is still recoverable via `kubectl get events`.
 - apiGroups: [""]
   resources: ["events"]
