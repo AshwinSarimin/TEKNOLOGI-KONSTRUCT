@@ -61,6 +61,9 @@ GH_ENV_NAME="prd"
 
 az login --tenant "$TENANT_ID" --use-device-code
 
+OWNER_ID=$(gh api users/$GH_USERNAME --jq .id)
+REPO_ID=$(gh api repos/$GH_USERNAME/$GH_REPO_NAME --jq .id)
+
 # Create federated identity credentials
 az identity federated-credential create \
     --resource-group "$RESOURCE_GROUP_NAME" \
