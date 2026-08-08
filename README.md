@@ -520,11 +520,19 @@ kubectl create secret generic azure-kv-credentials \
 kubectl apply -f bootstrap/k3d-teknologi-hub-cluster.yaml --context "$HUB_CONFIG_NAME"
 ```
 
+### Workload cluster
+
+#### Bootstrap cluster
+
+```bash
+# Bootstrap
+kubectl apply -f bootstrap/k3d-teknologi-workload-cluster.yaml --context "$WORKLOAD_CONFIG_NAME"
 
 
 -------------------------------
 
-```bash
+```bash 
+#Probaly not necessaery anynmore, because the argocd repository secrets are shared for every repo in a cluster..
 kubectl create secret generic teknologi-platform-orchestration-repo \
   -n argocd \
   --context k3d-teknologi-workload-cluster \
@@ -547,16 +555,6 @@ The GitHub App needs configurations for Backstage to have GitHub signin
 - General → Identifying and authorizing users section is where you enable "Request user authorization (OAuth) during installation" (this is what turns on "Sign in with GitHub App"), and the Callback URL field is where you add http://backstage.localhost/api/auth/github/handler/frame.
 
 
-
-
-### Workload cluster
-
-
-#### Bootstrap cluster
-
-```bash
-# Bootstrap
-kubectl apply -f bootstrap/k3d-teknologi-workload-cluster.yaml --context k3d-teknologi-workload-cluster
 ```
 
 ### REST API (Phase 5)

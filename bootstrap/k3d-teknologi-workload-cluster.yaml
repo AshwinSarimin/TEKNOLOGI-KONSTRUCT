@@ -11,7 +11,7 @@ metadata:
     cluster-role: workload
     platform.external-secrets: "true"
     platform.cert-manager: "true"
-    platform.argocd: "false" #true
+    platform.argocd: "true"
     platform.backstage: "false"
     platform.kratix: "false"
     platform.crossplane: "false" #true
