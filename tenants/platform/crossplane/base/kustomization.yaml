@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
   - configs/core/namespace.yaml
   - configs/core/networkpolicy.yaml
-  - configs/core/environment-config.yaml
   - configs/providers/kubernetes.yaml
   - configs/providers/azure-keyvault.yaml
   - configs/providers/azure-storage.yaml

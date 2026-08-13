@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="HgWRkRQcH0X_2F6G4Ych">
-    <mxGraphModel dx="2570" dy="-3448" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1063" dy="-4006" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" style="locked=0;" />
@@ -878,7 +878,7 @@
         <mxCell id="GaVICOuH63ULp3C2RWeI-425" edge="1" parent="DTOTCtgB_hKucLkh7eAS-7" source="GaVICOuH63ULp3C2RWeI-363" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.006;entryY=0.525;entryDx=0;entryDy=0;entryPerimeter=0;" target="GaVICOuH63ULp3C2RWeI-479">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="GaVICOuH63ULp3C2RWeI-480" connectable="0" parent="GaVICOuH63ULp3C2RWeI-425" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Poll&lt;div&gt;Ready state&lt;/div&gt;" vertex="1">
+        <mxCell id="GaVICOuH63ULp3C2RWeI-480" connectable="0" parent="GaVICOuH63ULp3C2RWeI-425" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Poll&lt;div&gt;XR status&lt;/div&gt;" vertex="1">
           <mxGeometry relative="1" x="0.3272" y="-1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
