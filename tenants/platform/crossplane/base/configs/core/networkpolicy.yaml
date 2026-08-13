@@ -23,6 +23,23 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: allow-function-egress
+  namespace: crossplane-system
+spec:
+  # Composition mode: Pipeline calls out to Function pods (e.g. function-patch-and-transform)
+  # over gRPC on 9443 — east-west traffic that mode: Resources never needed.
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - podSelector: {}
+    ports:
+    - port: 9443
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: allow-dns
   namespace: crossplane-system
 spec:

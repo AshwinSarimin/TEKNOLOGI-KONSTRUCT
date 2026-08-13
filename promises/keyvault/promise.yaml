@@ -162,7 +162,7 @@ spec:
                 strategy: string
                 string:
                   fmt: "kv-%s-%s"
-              toFieldPath: spec.forProvider.name
+              toFieldPath: metadata.annotations[crossplane.io/external-name]
             - type: ToCompositeFieldPath
               fromFieldPath: metadata.name
               toFieldPath: status.vaultName
