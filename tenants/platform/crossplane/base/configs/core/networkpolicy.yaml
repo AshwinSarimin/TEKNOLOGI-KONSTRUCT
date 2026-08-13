@@ -1,15 +1,3 @@
-# crossplane-system holds the Azure provider's credentials — egress is the
-# security-relevant direction here (Azure Resource Manager + Entra ID login
-# for the SP, k8s API for its own reconcile loop, DNS).
-#
-# Ingress is intentionally NOT default-denied on the webhook port: Crossplane
-# runs internal validating/mutating admission webhooks that the k8s API server
-# calls synchronously on every XR/Composition apply. Identifying "the API
-# server" as a NetworkPolicy source is distro-dependent and easy to get wrong
-# — this project already hit a Crossplane webhook outage once (see
-# Experiments.md, "crossplane-webhooks 403/not-found"), so this policy
-# deliberately does not risk repeating it. Only the webhook port is left open;
-# everything else in the namespace is still default-denied both ways.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

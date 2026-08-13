@@ -1,0 +1,29 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: azure-creds
+  namespace: crossplane-system
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: platform-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: azure-creds
+    template:
+      data:
+        credentials: >-
+          {"clientId":"{{ .clientId }}","clientSecret":"{{ .clientSecret }}","subscriptionId":"{{ .subscriptionId }}","tenantId":"{{ .tenantId }}"}
+  data:
+  - secretKey: clientId
+    remoteRef:
+      key: platform-cloud-client-id
+  - secretKey: clientSecret
+    remoteRef:
+      key: platform-cloud-client-secret
+  - secretKey: subscriptionId
+    remoteRef:
+      key: platform-cloud-subscription-id
+  - secretKey: tenantId
+    remoteRef:
+      key: platform-cloud-tenant-id

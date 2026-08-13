@@ -7,10 +7,6 @@ metadata:
 spec:
   package: xpkg.upbound.io/upbound/provider-azure-keyvault:v1.3.0
 ---
-# ProviderConfig for Azure — credentials come from azure-creds secret.
-# Secret is created manually for now; replaced by ESO in Phase 7.
-# Format: az ad sp create-for-rbac --sdk-auth > /tmp/azure-creds.json
-# kubectl create secret generic azure-creds --from-file=credentials=/tmp/azure-creds.json -n crossplane-system
 apiVersion: azure.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:
