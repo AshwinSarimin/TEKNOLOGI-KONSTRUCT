@@ -111,46 +111,53 @@ spec:
       compositeTypeRef:
         apiVersion: platform.teknologi.io/v1alpha1
         kind: XStorageAccount
-      mode: Resources
-      resources:
-      - name: storage-account
-        base:
-          apiVersion: storage.azure.upbound.io/v1beta2
-          kind: Account
-          spec:
-            forProvider:
-              accountKind: StorageV2
-              accountTier: Standard
-              accountReplicationType: LRS
-              httpsTrafficOnlyEnabled: true
-              minTlsVersion: TLS1_2
-            providerConfigRef:
-              name: azure-provider
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.storageAccountName
-          toFieldPath: metadata.name
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.storageAccountName
-          toFieldPath: metadata.annotations[crossplane.io/external-name]
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.location
-          toFieldPath: spec.forProvider.location
-          policy:
-            fromFieldPath: Optional
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.resourceGroupName
-          toFieldPath: spec.forProvider.resourceGroupName
-          policy:
-            fromFieldPath: Optional
-        - type: ToCompositeFieldPath
-          fromFieldPath: metadata.name
-          toFieldPath: status.storageAccountName
-        - type: ToCompositeFieldPath
-          fromFieldPath: status.atProvider.primaryBlobEndpoint
-          toFieldPath: status.primaryBlobEndpoint
-          policy:
-            fromFieldPath: Optional
+      mode: Pipeline
+      pipeline:
+      - step: patch-and-transform
+        functionRef:
+          name: function-patch-and-transform
+        input:
+          apiVersion: pt.fn.crossplane.io/v1beta1
+          kind: Resources
+          resources:
+          - name: storage-account
+            base:
+              apiVersion: storage.azure.upbound.io/v1beta2
+              kind: Account
+              spec:
+                forProvider:
+                  accountKind: StorageV2
+                  accountTier: Standard
+                  accountReplicationType: LRS
+                  httpsTrafficOnlyEnabled: true
+                  minTlsVersion: TLS1_2
+                providerConfigRef:
+                  name: azure-provider
+            patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.storageAccountName
+              toFieldPath: metadata.name
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.storageAccountName
+              toFieldPath: metadata.annotations[crossplane.io/external-name]
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.location
+              toFieldPath: spec.forProvider.location
+              policy:
+                fromFieldPath: Optional
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.resourceGroupName
+              toFieldPath: spec.forProvider.resourceGroupName
+              policy:
+                fromFieldPath: Optional
+            - type: ToCompositeFieldPath
+              fromFieldPath: metadata.name
+              toFieldPath: status.storageAccountName
+            - type: ToCompositeFieldPath
+              fromFieldPath: status.atProvider.primaryBlobEndpoint
+              toFieldPath: status.primaryBlobEndpoint
+              policy:
+                fromFieldPath: Optional
 
   # Pipeline — runs when a team creates a StorageAccountRequest.
   # Writes XStorageAccount YAML to /kratix/output — no Terraform, no Azure credentials in the pipeline.

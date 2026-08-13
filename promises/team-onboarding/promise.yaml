@@ -142,25 +142,32 @@ spec:
       compositeTypeRef:
         apiVersion: platform.teknologi.io/v1alpha1
         kind: XResourceGroup
-      mode: Resources
-      resources:
-      - name: resource-group
-        base:
-          apiVersion: azure.upbound.io/v1beta1
-          kind: ResourceGroup
-          spec:
-            providerConfigRef:
-              name: azure-provider
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.location
-          toFieldPath: spec.forProvider.location
-          policy:
-            fromFieldPath: Optional
-        # XR metadata.name becomes the Azure resource group name via external-name.
-        - type: FromCompositeFieldPath
-          fromFieldPath: metadata.name
-          toFieldPath: metadata.annotations[crossplane.io/external-name]
+      mode: Pipeline
+      pipeline:
+      - step: patch-and-transform
+        functionRef:
+          name: function-patch-and-transform
+        input:
+          apiVersion: pt.fn.crossplane.io/v1beta1
+          kind: Resources
+          resources:
+          - name: resource-group
+            base:
+              apiVersion: azure.upbound.io/v1beta1
+              kind: ResourceGroup
+              spec:
+                providerConfigRef:
+                  name: azure-provider
+            patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.location
+              toFieldPath: spec.forProvider.location
+              policy:
+                fromFieldPath: Optional
+            # XR metadata.name becomes the Azure resource group name via external-name.
+            - type: FromCompositeFieldPath
+              fromFieldPath: metadata.name
+              toFieldPath: metadata.annotations[crossplane.io/external-name]
 
   workflows:
     resource:

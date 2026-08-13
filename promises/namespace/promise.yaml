@@ -100,38 +100,45 @@ spec:
       compositeTypeRef:
         apiVersion: platform.teknologi.io/v1alpha1
         kind: XNamespace
-      mode: Resources
-      resources:
-      - name: namespace
-        base:
-          apiVersion: kubernetes.crossplane.io/v1alpha2
-          kind: Object
-          spec:
-            forProvider:
-              manifest:
-                apiVersion: v1
-                kind: Namespace
-                metadata:
-                  name: placeholder
-                  labels:
-                    teknologi.io/managed-by: crossplane
-                    teknologi.io/team: placeholder
-                    teknologi.io/environment: placeholder
-            providerConfigRef:
-              name: kubernetes-in-cluster
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.namespaceName
-          toFieldPath: spec.forProvider.manifest.metadata.name
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.namespaceName
-          toFieldPath: spec.forProvider.manifest.metadata.labels["teknologi.io/team"]
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.environment
-          toFieldPath: spec.forProvider.manifest.metadata.labels["teknologi.io/environment"]
-        - type: ToCompositeFieldPath
-          fromFieldPath: spec.forProvider.manifest.metadata.name
-          toFieldPath: status.namespaceName
+      mode: Pipeline
+      pipeline:
+      - step: patch-and-transform
+        functionRef:
+          name: function-patch-and-transform
+        input:
+          apiVersion: pt.fn.crossplane.io/v1beta1
+          kind: Resources
+          resources:
+          - name: namespace
+            base:
+              apiVersion: kubernetes.crossplane.io/v1alpha2
+              kind: Object
+              spec:
+                forProvider:
+                  manifest:
+                    apiVersion: v1
+                    kind: Namespace
+                    metadata:
+                      name: placeholder
+                      labels:
+                        teknologi.io/managed-by: crossplane
+                        teknologi.io/team: placeholder
+                        teknologi.io/environment: placeholder
+                providerConfigRef:
+                  name: kubernetes-in-cluster
+            patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.namespaceName
+              toFieldPath: spec.forProvider.manifest.metadata.name
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.namespaceName
+              toFieldPath: spec.forProvider.manifest.metadata.labels["teknologi.io/team"]
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.environment
+              toFieldPath: spec.forProvider.manifest.metadata.labels["teknologi.io/environment"]
+            - type: ToCompositeFieldPath
+              fromFieldPath: spec.forProvider.manifest.metadata.name
+              toFieldPath: status.namespaceName
 
   # Pipeline
   workflows:

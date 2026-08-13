@@ -111,59 +111,66 @@ spec:
       compositeTypeRef:
         apiVersion: platform.teknologi.io/v1alpha1
         kind: XKeyVault
-      mode: Resources
-      resources:
-      - name: keyvault
-        base:
-          apiVersion: keyvault.azure.upbound.io/v1beta2
-          kind: Vault
-          spec:
-            forProvider:
-              skuName: standard
-              purgeProtectionEnabled: false
-              softDeleteRetentionDays: 7
-            providerConfigRef:
-              name: azure-provider
-        patches:
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.tenantId
-          toFieldPath: spec.forProvider.tenantId
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.location
-          toFieldPath: spec.forProvider.location
-          policy:
-            fromFieldPath: Optional
-        - type: FromCompositeFieldPath
-          fromFieldPath: spec.resourceGroupName
-          toFieldPath: spec.forProvider.resourceGroupName
-          policy:
-            fromFieldPath: Optional
-        - type: CombineFromComposite
-          combine:
-            variables:
-            - fromFieldPath: spec.appName
-            - fromFieldPath: spec.environment
-            strategy: string
-            string:
-              fmt: "kv-%s-%s"
-          toFieldPath: metadata.name
-        - type: CombineFromComposite
-          combine:
-            variables:
-            - fromFieldPath: spec.appName
-            - fromFieldPath: spec.environment
-            strategy: string
-            string:
-              fmt: "kv-%s-%s"
-          toFieldPath: spec.forProvider.name
-        - type: ToCompositeFieldPath
-          fromFieldPath: metadata.name
-          toFieldPath: status.vaultName
-        - type: ToCompositeFieldPath
-          fromFieldPath: status.atProvider.vaultUri
-          toFieldPath: status.vaultUri
-          policy:
-            fromFieldPath: Optional
+      mode: Pipeline
+      pipeline:
+      - step: patch-and-transform
+        functionRef:
+          name: function-patch-and-transform
+        input:
+          apiVersion: pt.fn.crossplane.io/v1beta1
+          kind: Resources
+          resources:
+          - name: keyvault
+            base:
+              apiVersion: keyvault.azure.upbound.io/v1beta2
+              kind: Vault
+              spec:
+                forProvider:
+                  skuName: standard
+                  purgeProtectionEnabled: false
+                  softDeleteRetentionDays: 7
+                providerConfigRef:
+                  name: azure-provider
+            patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.tenantId
+              toFieldPath: spec.forProvider.tenantId
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.location
+              toFieldPath: spec.forProvider.location
+              policy:
+                fromFieldPath: Optional
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.resourceGroupName
+              toFieldPath: spec.forProvider.resourceGroupName
+              policy:
+                fromFieldPath: Optional
+            - type: CombineFromComposite
+              combine:
+                variables:
+                - fromFieldPath: spec.appName
+                - fromFieldPath: spec.environment
+                strategy: string
+                string:
+                  fmt: "kv-%s-%s"
+              toFieldPath: metadata.name
+            - type: CombineFromComposite
+              combine:
+                variables:
+                - fromFieldPath: spec.appName
+                - fromFieldPath: spec.environment
+                strategy: string
+                string:
+                  fmt: "kv-%s-%s"
+              toFieldPath: spec.forProvider.name
+            - type: ToCompositeFieldPath
+              fromFieldPath: metadata.name
+              toFieldPath: status.vaultName
+            - type: ToCompositeFieldPath
+              fromFieldPath: status.atProvider.vaultUri
+              toFieldPath: status.vaultUri
+              policy:
+                fromFieldPath: Optional
 
   # Pipeline
   workflows:
