@@ -15,7 +15,7 @@ metadata:
     platform.backstage: "false"
     platform.kratix: "false"
     platform.crossplane: "true"
-    platform.kratix-workloads: "false" #true
+    platform.kratix-workloads: "true"
     platform.rest-api: "false"
 type: Opaque
 stringData:
