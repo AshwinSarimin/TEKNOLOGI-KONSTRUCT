@@ -1,10 +1,8 @@
-# RBAC every Promise's shared "notify" container needs for its stage-2 job
-# (poll XR status, record a durable Event alongside its Slack post).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: notify-watcher
-  namespace: default
+  namespace: kratix-workloads
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -32,4 +30,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: notify-watcher
-  namespace: default
+  namespace: kratix-workloads

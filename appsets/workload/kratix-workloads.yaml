@@ -25,7 +25,7 @@ spec:
           recurse: true
       destination:
         name: '{{.name}}'
-        namespace: default
+        namespace: kratix-workloads
       syncPolicy:
         automated:
           prune: true

@@ -2,10 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - configs/core/namespace.yaml
+  - configs/core/azure-credentials.yaml
+  - configs/core/acr-credentials.yaml
   - configs/core/networkpolicy.yaml
-  - configs/core/azure-creds.yaml
+  - configs/core/notify-watcher-rbac.yaml
   - configs/functions/patch-and-transform.yaml
   - configs/providers/kubernetes.yaml
-  - configs/providers/azure-keyvault.yaml
-  - configs/providers/azure-storage.yaml
+  - configs/providers/azure-provider-config.yaml
+  - configs/providers/azure-providers.yaml
+  
   

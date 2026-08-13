@@ -1,12 +1,3 @@
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: upbound-provider-azure-keyvault
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-spec:
-  package: xpkg.upbound.io/upbound/provider-azure-keyvault:v1.3.0
----
 apiVersion: azure.upbound.io/v1beta1
 kind: ProviderConfig
 metadata:
@@ -19,5 +10,5 @@ spec:
     source: Secret
     secretRef:
       namespace: crossplane-system
-      name: azure-creds
+      name: azure-credentials
       key: credentials

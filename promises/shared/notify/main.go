@@ -38,7 +38,7 @@ const stage2JobTemplate = `apiVersion: batch/v1
 kind: Job
 metadata:
   name: notify-stage2-{{.ResourceName}}
-  namespace: default
+  namespace: kratix-workloads
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
@@ -311,13 +311,13 @@ func recordNotificationEvent(meta NotifyMeta, elapsed time.Duration) error {
 		"kind":       "Event",
 		"metadata": map[string]interface{}{
 			"generateName": "notify-resource-live-",
-			"namespace":    "default",
+			"namespace":    "kratix-workloads",
 		},
 		"involvedObject": map[string]interface{}{
 			"apiVersion": "platform.teknologi.io/v1alpha1",
 			"kind":       meta.ResourceType,
 			"name":       meta.ResourceName,
-			"namespace":  "default",
+			"namespace":  "kratix-workloads",
 		},
 		"reason":         "ResourceLive",
 		"message":        fmt.Sprintf("%s/%s became Ready after %s (requested by %s)", meta.ResourceType, meta.ResourceName, elapsed, meta.RequesterNamespace),
@@ -332,7 +332,7 @@ func recordNotificationEvent(meta NotifyMeta, elapsed time.Duration) error {
 		return fmt.Errorf("marshal event: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, k8sAPIBase+"/api/v1/namespaces/default/events", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, k8sAPIBase+"/api/v1/namespaces/kratix-workloads/events", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
