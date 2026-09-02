@@ -1,0 +1,39 @@
+# RBAC for the persistent notify-watcher Deployment (watches X* composite resources
+# for Ready transitions) and for each Promise's shared "notify" container stage-1
+# Slack post.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notify-watcher
+  namespace: kratix-workloads
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: notify-watcher
+rules:
+- apiGroups: ["platform.teknologi.io"]
+  resources: ["*"]
+  # patch is for setting the notify.platform.teknologi.io/notified annotation once
+  # a resource's "live" notification has fired, so a watcher restart's initial list
+  # doesn't re-notify for resources that were already live.
+  verbs: ["get", "list", "watch", "patch"]
+# Lets the watcher record a durable, queryable Event alongside (not instead of) its
+# Slack post. Slack can be down or misconfigured and the fact that notification
+# fired is still recoverable via `kubectl get events`.
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: notify-watcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: notify-watcher
+subjects:
+- kind: ServiceAccount
+  name: notify-watcher
+  namespace: kratix-workloads

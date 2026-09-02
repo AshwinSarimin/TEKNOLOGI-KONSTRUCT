@@ -16,6 +16,7 @@ metadata:
     platform.kratix: "false"
     platform.crossplane: "true"
     platform.kratix-workloads: "true"
+    platform.notify-watcher: "true"
     platform.rest-api: "false"
 type: Opaque
 stringData:

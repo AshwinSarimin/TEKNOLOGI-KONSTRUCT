@@ -201,7 +201,8 @@ spec:
                 configMapKeyRef:
                   name: platform-config
                   key: azureTenantId
-          # Stage 1: posts "request accepted" + writes stage 2 watcher Job to /kratix/output
+          # Stage 1: posts "request accepted" to Slack. "Resource live" is handled
+          # separately by the persistent notify-watcher Deployment on the workload cluster.
           - name: notify
             image: teknologieur1acr.azurecr.io/kratix-notify:latest
             securityContext:

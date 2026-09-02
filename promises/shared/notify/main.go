@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -9,90 +10,47 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
-	"text/template"
+	"syscall"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	pollInterval = 10 * time.Second
-	maxWait      = 10 * time.Minute
-	k8sAPIBase   = "https://kubernetes.default.svc:443"
-	tokenPath    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	caPath       = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-	notifyMeta   = "/kratix/metadata/notify.json"
+	k8sAPIBase = "https://kubernetes.default.svc:443"
+	tokenPath  = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	caPath     = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	notifyMeta = "/kratix/metadata/notify.json"
 )
 
 // NotifyMeta is written by the configure container to /kratix/metadata/notify.json.
-// XrPlural tells stage 2 which Crossplane composite resource to poll for Ready status.
 type NotifyMeta struct {
 	ResourceName       string `json:"resourceName"`
 	ResourceType       string `json:"resourceType"`
 	RequesterNamespace string `json:"requesterNamespace"`
-	XrPlural           string `json:"xrPlural"` // e.g. "xnamespaces", "xkeyvaults"
 }
-
-// Stage 2 runs as a PostSync Job on the workload cluster (written to /kratix/output by stage 1).
-// It polls XNamespace Ready and posts "resource live" to Slack via a secret on the workload cluster.
-const stage2JobTemplate = `apiVersion: batch/v1
-kind: Job
-metadata:
-  name: notify-stage2-{{.ResourceName}}
-  namespace: kratix-workloads
-  annotations:
-    argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
-    argocd.argoproj.io/sync-wave: "2"
-spec:
-  ttlSecondsAfterFinished: 300
-  backoffLimit: 3
-  template:
-    spec:
-      serviceAccountName: notify-watcher
-      imagePullSecrets:
-      - name: acr-credentials
-      containers:
-      - name: notify
-        image: teknologieur1acr.azurecr.io/kratix-notify:latest
-        env:
-        - name: NOTIFY_STAGE
-          value: "2"
-        - name: RESOURCE_NAME
-          value: "{{.ResourceName}}"
-        - name: RESOURCE_TYPE
-          value: "{{.ResourceType}}"
-        - name: REQUESTER_NAMESPACE
-          value: "{{.RequesterNamespace}}"
-        - name: XR_PLURAL
-          value: "{{.XrPlural}}"
-        - name: SLACK_WEBHOOK_URL
-          valueFrom:
-            secretKeyRef:
-              name: slack-webhook
-              key: url
-              optional: true
-      restartPolicy: OnFailure
-`
 
 func main() {
 	stage := getEnv("NOTIFY_STAGE", "1")
 
-	// Stage 2 reads resource info from env (set on the Job by stage 1)
-	// Stage 1 reads from /kratix/metadata/notify.json (written by the configure container)
-	var meta NotifyMeta
-	if stage == "2" {
-		meta = NotifyMeta{
-			ResourceName:       requireEnv("RESOURCE_NAME"),
-			ResourceType:       getEnv("RESOURCE_TYPE", "Resource"),
-			RequesterNamespace: getEnv("REQUESTER_NAMESPACE", "default"),
-			XrPlural:           getEnv("XR_PLURAL", "xnamespaces"),
-		}
-	} else {
-		var err error
-		meta, err = readNotifyMeta()
-		if err != nil {
-			log.Fatalf("Failed to read notify metadata: %v", err)
-		}
+	// watch runs as a persistent Deployment on the workload cluster — see runWatch.
+	if stage == "watch" {
+		runWatch(os.Getenv("SLACK_WEBHOOK_URL"))
+		return
+	}
+
+	meta, err := readNotifyMeta()
+	if err != nil {
+		log.Fatalf("Failed to read notify metadata: %v", err)
 	}
 
 	slackURL := os.Getenv("SLACK_WEBHOOK_URL")
@@ -104,76 +62,137 @@ func main() {
 	switch stage {
 	case "1":
 		runStage1(meta, slackURL, argocdURL)
-	case "2":
-		runStage2(meta, slackURL)
 	default:
-		log.Fatalf("Unknown NOTIFY_STAGE=%q (expected 1 or 2)", stage)
+		log.Fatalf("Unknown NOTIFY_STAGE=%q (expected 1 or watch)", stage)
 	}
 }
 
-// runStage1 posts "request accepted" and writes the stage 2 watcher Job to /kratix/output.
+// runStage1 posts "request accepted" to Slack. Resource-live notification is handled
+// separately by the persistent watcher (see runWatch) — not by anything this pipeline writes.
 func runStage1(meta NotifyMeta, slackURL, argocdURL string) {
 	if slackURL == "" {
 		log.Println("SLACK_WEBHOOK_URL not set — skipping stage 1 notification")
-	} else {
-		msg := buildAcceptedMessage(meta.ResourceName, meta.ResourceType, meta.RequesterNamespace, argocdURL)
-		if err := sendSlack(slackURL, msg); err != nil {
-			log.Printf("WARNING: stage 1 Slack notification failed: %v", err)
-		} else {
-			log.Println("Stage 1 notification sent")
-		}
+		return
 	}
-
-	// Always write stage 2 Job — the Job reads SLACK_WEBHOOK_URL from a Secret on the workload cluster.
-	if err := writeStage2Job(meta); err != nil {
-		log.Printf("WARNING: failed to write stage 2 job: %v", err)
+	msg := buildAcceptedMessage(meta.ResourceName, meta.ResourceType, meta.RequesterNamespace, argocdURL)
+	if err := sendSlack(slackURL, msg); err != nil {
+		log.Printf("WARNING: stage 1 Slack notification failed: %v", err)
 	} else {
-		log.Println("Stage 2 watcher job written to /kratix/output")
+		log.Println("Stage 1 notification sent")
 	}
 }
 
-// runStage2 polls the Crossplane XR Ready status and posts "resource live" to Slack.
-// Runs as a Kubernetes Job on the workload cluster.
-func runStage2(meta NotifyMeta, slackURL string) {
-	start := time.Now()
-	log.Printf("Polling %s/%s for Ready condition (timeout: %s)...", meta.XrPlural, meta.ResourceName, maxWait)
+// --- Watch (persistent controller, runs as a Deployment on the workload cluster) ---
+//
+// Replaces the old per-resource PostSync-hook Job: that Job was written fresh to
+// /kratix/output on every pipeline run, but PostSync hooks aren't part of ArgoCD's
+// sync-status/drift comparison, so a pipeline rerun with byte-identical output
+// produced no new git commit and the hook silently never re-ran. This watches XR
+// Ready conditions directly via the Kubernetes API instead, independent of git and
+// ArgoCD's sync lifecycle entirely.
 
-	for {
-		ready, err := isXRReady(meta.XrPlural, meta.ResourceName)
-		if err != nil {
-			log.Printf("Poll error: %v — retrying in %s", err, pollInterval)
-		} else if ready {
-			elapsed := time.Since(start).Round(time.Second)
-			log.Printf("%s/%s is Ready (elapsed: %s)", meta.ResourceType, meta.ResourceName, elapsed)
+// notifiedAnnotation marks an XR as already notified, so a restart's initial list
+// (which replays every currently-Ready object through the same handler) doesn't
+// re-send Slack messages for resources that were already live before the watcher
+// last started.
+const notifiedAnnotation = "notify.platform.teknologi.io/notified"
 
-			// Record first, alert second: the Event is the durable, queryable trace
-			// of "this fired" independent of whether Slack is reachable or configured
-			// at all — best-effort, since a notification-history gap shouldn't fail
-			// the pipeline over something that already succeeded (the XR is Ready).
-			if err := recordNotificationEvent(meta, elapsed); err != nil {
-				log.Printf("WARNING: failed to record notification Event: %v", err)
-			}
+var watchedResources = []schema.GroupVersionResource{
+	{Group: "platform.teknologi.io", Version: "v1alpha1", Resource: "xkeyvaults"},
+	{Group: "platform.teknologi.io", Version: "v1alpha1", Resource: "xnamespaces"},
+	{Group: "platform.teknologi.io", Version: "v1alpha1", Resource: "xstorageaccounts"},
+	{Group: "platform.teknologi.io", Version: "v1alpha1", Resource: "xresourcegroups"},
+}
 
-			if slackURL == "" {
-				log.Println("SLACK_WEBHOOK_URL not set — skipping stage 2 notification")
-				return
-			}
-			msg := buildLiveMessage(meta.ResourceName, meta.ResourceType, meta.RequesterNamespace, elapsed.String())
-			if err := sendSlack(slackURL, msg); err != nil {
-				log.Printf("WARNING: stage 2 Slack notification failed: %v", err)
-			} else {
-				log.Println("Stage 2 notification sent")
-			}
-			return
-		}
-
-		if time.Since(start) > maxWait {
-			log.Printf("Timed out waiting for %s/%s to become Ready after %s", meta.ResourceType, meta.ResourceName, maxWait)
-			return
-		}
-		log.Printf("%s/%s not ready yet — checking again in %s", meta.ResourceType, meta.ResourceName, pollInterval)
-		time.Sleep(pollInterval)
+func runWatch(slackURL string) {
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatalf("in-cluster config: %v", err)
 	}
+	dynClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		log.Fatalf("dynamic client: %v", err)
+	}
+
+	factory := dynamicinformer.NewDynamicSharedInformerFactory(dynClient, 10*time.Hour)
+	for _, gvr := range watchedResources {
+		gvr := gvr
+		informer := factory.ForResource(gvr).Informer()
+		informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc:    func(obj interface{}) { handleXR(dynClient, gvr, slackURL, obj) },
+			UpdateFunc: func(_, obj interface{}) { handleXR(dynClient, gvr, slackURL, obj) },
+		})
+	}
+
+	stopCh := make(chan struct{})
+	factory.Start(stopCh)
+	factory.WaitForCacheSync(stopCh)
+	log.Println("notify-watcher: cache synced, watching for Ready transitions")
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	<-sigCh
+	log.Println("notify-watcher: shutting down")
+	close(stopCh)
+}
+
+func handleXR(dynClient dynamic.Interface, gvr schema.GroupVersionResource, slackURL string, obj interface{}) {
+	u, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return
+	}
+	if u.GetAnnotations()[notifiedAnnotation] == "true" {
+		return
+	}
+	if !isReady(u) {
+		return
+	}
+
+	name := u.GetName()
+	resourceType := strings.TrimPrefix(u.GetKind(), "X")
+	elapsed := time.Since(u.GetCreationTimestamp().Time).Round(time.Second)
+
+	log.Printf("notify-watcher: %s/%s is Ready (elapsed: %s) — notifying", resourceType, name, elapsed)
+
+	// Record first, alert second: the Event is the durable, queryable trace of "this
+	// fired" independent of whether Slack is reachable or configured at all — best-effort,
+	// since a notification-history gap shouldn't block marking the resource as notified.
+	if err := recordNotificationEvent(resourceType, name, elapsed); err != nil {
+		log.Printf("WARNING: failed to record notification Event for %s/%s: %v", resourceType, name, err)
+	}
+
+	if slackURL == "" {
+		log.Println("SLACK_WEBHOOK_URL not set — skipping notification")
+	} else {
+		msg := buildLiveMessage(name, resourceType, elapsed.String())
+		if err := sendSlack(slackURL, msg); err != nil {
+			log.Printf("WARNING: Slack notification failed for %s/%s: %v", resourceType, name, err)
+		} else {
+			log.Printf("notify-watcher: Slack notification sent for %s/%s", resourceType, name)
+		}
+	}
+
+	patch := []byte(fmt.Sprintf(`{"metadata":{"annotations":{%q:"true"}}}`, notifiedAnnotation))
+	if _, err := dynClient.Resource(gvr).Patch(context.Background(), name, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil {
+		log.Printf("WARNING: failed to mark %s/%s as notified (may re-notify on restart): %v", resourceType, name, err)
+	}
+}
+
+func isReady(u *unstructured.Unstructured) bool {
+	conditions, found, err := unstructured.NestedSlice(u.Object, "status", "conditions")
+	if err != nil || !found {
+		return false
+	}
+	for _, c := range conditions {
+		cond, ok := c.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if cond["type"] == "Ready" && cond["status"] == "True" {
+			return true
+		}
+	}
+	return false
 }
 
 // --- Metadata ---
@@ -195,9 +214,6 @@ func readNotifyMeta() (NotifyMeta, error) {
 	}
 	if m.RequesterNamespace == "" {
 		m.RequesterNamespace = "default"
-	}
-	if m.XrPlural == "" {
-		m.XrPlural = "xnamespaces" // safe default
 	}
 	return m, nil
 }
@@ -240,7 +256,12 @@ func buildAcceptedMessage(name, resourceType, requesterNS, argocdURL string) sla
 	}}
 }
 
-func buildLiveMessage(name, resourceType, requesterNS, elapsed string) slackPayload {
+// buildLiveMessage no longer includes "Requested by" — the watcher observes the XR
+// directly on the workload cluster and has no visibility into which platform-cluster
+// namespace originated the request (that would require a cross-cluster API call,
+// which this design deliberately avoids; see Architecture.md's GitOps-only boundary
+// between the platform and workload clusters).
+func buildLiveMessage(name, resourceType, elapsed string) slackPayload {
 	return slackPayload{Blocks: []slackBlock{
 		{Type: "section", Text: &slackText{
 			Type: "mrkdwn",
@@ -248,7 +269,6 @@ func buildLiveMessage(name, resourceType, requesterNS, elapsed string) slackPayl
 		}},
 		{Type: "section", Fields: []slackText{
 			{Type: "mrkdwn", Text: fmt.Sprintf("*Resource*\n%s", name)},
-			{Type: "mrkdwn", Text: fmt.Sprintf("*Requested by*\n%s", requesterNS)},
 			{Type: "mrkdwn", Text: fmt.Sprintf("*Provisioned in*\n%s", elapsed)},
 			{Type: "mrkdwn", Text: fmt.Sprintf("*Time*\n%s", time.Now().UTC().Format("2006-01-02 15:04:05 UTC"))},
 		}},
@@ -271,35 +291,13 @@ func sendSlack(webhookURL string, payload slackPayload) error {
 	return nil
 }
 
-// --- Stage 2 Job output ---
-
-func writeStage2Job(meta NotifyMeta) error {
-	if err := os.MkdirAll("/kratix/output", 0755); err != nil {
-		return fmt.Errorf("mkdir /kratix/output: %w", err)
-	}
-	tmpl, err := template.New("job").Parse(stage2JobTemplate)
-	if err != nil {
-		return fmt.Errorf("parse job template: %w", err)
-	}
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, meta); err != nil {
-		return fmt.Errorf("render job template: %w", err)
-	}
-	path := fmt.Sprintf("/kratix/output/notify-stage2-%s.yaml", meta.ResourceName)
-	if err := os.WriteFile(path, buf.Bytes(), 0644); err != nil {
-		return fmt.Errorf("write %s: %w", path, err)
-	}
-	return nil
-}
-
-// --- Durable notification record (stage 2, runs on workload cluster) ---
+// --- Durable notification record (runs on the workload cluster) ---
 
 // recordNotificationEvent creates a core v1 Event on the workload cluster recording
-// that stage 2's "resource live" notification fired — a durable, queryable
-// (`kubectl get events`) trace independent of Slack, which can be down, rate-limited,
-// or simply not yet configured (SLACK_WEBHOOK_URL is optional) without losing the
-// record that the resource became ready and notification was attempted.
-func recordNotificationEvent(meta NotifyMeta, elapsed time.Duration) error {
+// that a "resource live" notification fired — a durable, queryable (`kubectl get
+// events`) trace independent of Slack, which can be down, rate-limited, or simply
+// not yet configured (SLACK_WEBHOOK_URL is optional).
+func recordNotificationEvent(resourceType, resourceName string, elapsed time.Duration) error {
 	client, token, err := buildK8sClient()
 	if err != nil {
 		return fmt.Errorf("k8s client: %w", err)
@@ -315,12 +313,12 @@ func recordNotificationEvent(meta NotifyMeta, elapsed time.Duration) error {
 		},
 		"involvedObject": map[string]interface{}{
 			"apiVersion": "platform.teknologi.io/v1alpha1",
-			"kind":       meta.ResourceType,
-			"name":       meta.ResourceName,
+			"kind":       resourceType,
+			"name":       resourceName,
 			"namespace":  "kratix-workloads",
 		},
 		"reason":         "ResourceLive",
-		"message":        fmt.Sprintf("%s/%s became Ready after %s (requested by %s)", meta.ResourceType, meta.ResourceName, elapsed, meta.RequesterNamespace),
+		"message":        fmt.Sprintf("%s/%s became Ready after %s", resourceType, resourceName, elapsed),
 		"type":           "Normal",
 		"firstTimestamp": now,
 		"lastTimestamp":  now,
@@ -351,8 +349,6 @@ func recordNotificationEvent(meta NotifyMeta, elapsed time.Duration) error {
 	return nil
 }
 
-// --- Kubernetes polling (stage 2, runs on workload cluster) ---
-
 func buildK8sClient() (*http.Client, string, error) {
 	tokenBytes, err := os.ReadFile(tokenPath)
 	if err != nil {
@@ -375,55 +371,6 @@ func buildK8sClient() (*http.Client, string, error) {
 	return client, strings.TrimSpace(string(tokenBytes)), nil
 }
 
-// isXRReady polls any cluster-scoped Crossplane composite resource for Ready=True.
-// plural is the lowercase plural name (e.g. "xnamespaces", "xkeyvaults").
-func isXRReady(plural, resourceName string) (bool, error) {
-	client, token, err := buildK8sClient()
-	if err != nil {
-		return false, fmt.Errorf("k8s client: %w", err)
-	}
-
-	// Crossplane Composite Resources are always cluster-scoped — no /namespaces/ segment
-	url := fmt.Sprintf("%s/apis/platform.teknologi.io/v1alpha1/%s/%s",
-		k8sAPIBase, plural, resourceName)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return false, err
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return false, fmt.Errorf("GET xnamespace: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return false, nil // Not yet created — keep polling
-	}
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("k8s API returned %d", resp.StatusCode)
-	}
-
-	var obj struct {
-		Status struct {
-			Conditions []struct {
-				Type   string `json:"type"`
-				Status string `json:"status"`
-			} `json:"conditions"`
-		} `json:"status"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&obj); err != nil {
-		return false, fmt.Errorf("decode xnamespace: %w", err)
-	}
-	for _, c := range obj.Status.Conditions {
-		if c.Type == "Ready" && c.Status == "True" {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 // --- Helpers ---
 
 func getEnv(key, def string) string {
@@ -431,12 +378,4 @@ func getEnv(key, def string) string {
 		return v
 	}
 	return def
-}
-
-func requireEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
-		log.Fatalf("Required env var %s is not set", key)
-	}
-	return v
 }

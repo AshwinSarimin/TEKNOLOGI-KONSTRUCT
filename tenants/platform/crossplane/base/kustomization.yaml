@@ -3,10 +3,7 @@ kind: Kustomization
 resources:
   - configs/core/namespace.yaml
   - configs/core/azure-credentials.yaml
-  - configs/core/acr-credentials.yaml
-  - configs/core/slack-credentials.yaml
   - configs/core/networkpolicy.yaml
-  - configs/core/notify-watcher-rbac.yaml
   - configs/functions/patch-and-transform.yaml
   - configs/providers/kubernetes.yaml
   - configs/providers/azure-provider-config.yaml

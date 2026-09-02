@@ -68,6 +68,21 @@ spec:
           - component: external-secrets
             namespace: external-secrets
 
+  # notify-watcher — clusters with platform.notify-watcher: "true". Persistent
+  # Deployment that watches X* composite resources for Ready transitions and posts
+  # to Slack; deliberately its own component, not part of Crossplane's config tree
+  # (it just happens to watch Crossplane-composed resources).
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.notify-watcher: "true"
+      - list:
+          elements:
+          - component: notify-watcher
+            namespace: kratix-workloads
+
   # REST API (Phase 5) — clusters with platform.rest-api: "true". No public Helm
   # chart (bespoke Go service) so everything — Deployment, Service, Ingress,
   # RBAC, ExternalSecrets — lives in this one "configs" tree; no matching
