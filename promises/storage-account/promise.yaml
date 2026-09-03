@@ -129,7 +129,7 @@ spec:
                   accountKind: StorageV2
                   accountTier: Standard
                   accountReplicationType: LRS
-                  httpsTrafficOnlyEnabled: true
+                  enableHttpsTrafficOnly: true
                   minTlsVersion: TLS1_2
                 providerConfigRef:
                   name: azure-provider
