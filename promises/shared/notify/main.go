@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -97,6 +98,14 @@ func runStage1(meta NotifyMeta, slackURL, argocdURL string) {
 // last started.
 const notifiedAnnotation = "notify.platform.teknologi.io/notified"
 
+// notifying guards against duplicate sends within a single process's lifetime.
+// The annotation check alone isn't enough: two events for the same object can
+// arrive back-to-back (e.g. Crossplane's own status updates right at the Ready
+// transition) before either one's annotation-patch round-trips back through the
+// watch, so both would read "not yet notified" and both would fire. Keyed by
+// "<resource>/<name>"; LoadOrStore makes the check-and-claim atomic.
+var notifying sync.Map
+
 var watchedResources = []schema.GroupVersionResource{
 	{Group: "platform.teknologi.io", Version: "v1alpha1", Resource: "xkeyvaults"},
 	{Group: "platform.teknologi.io", Version: "v1alpha1", Resource: "xnamespaces"},
@@ -150,6 +159,12 @@ func handleXR(dynClient dynamic.Interface, gvr schema.GroupVersionResource, slac
 
 	name := u.GetName()
 	resourceType := strings.TrimPrefix(u.GetKind(), "X")
+
+	key := gvr.Resource + "/" + name
+	if _, alreadyClaimed := notifying.LoadOrStore(key, true); alreadyClaimed {
+		return
+	}
+
 	elapsed := time.Since(u.GetCreationTimestamp().Time).Round(time.Second)
 
 	log.Printf("notify-watcher: %s/%s is Ready (elapsed: %s) — notifying", resourceType, name, elapsed)
