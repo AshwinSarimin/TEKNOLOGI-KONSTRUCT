@@ -20,12 +20,17 @@ const (
 	// changed from "cheap in-process wait" to "a Kubernetes Job per check".
 	pollInterval       = 2 * time.Minute
 	shortRetryInterval = 30 * time.Second
-	maxWait            = 2 * time.Hour
 )
 
 // runWatcher is a one-shot check, run again by Kratix itself via workflow-control.yaml's
-// retryAfter until the team's approval PR is merged (or the wait times out) — replacing
-// the old design where a single container held a pod open for up to 2h in a sleep loop.
+// retryAfter until the team's approval PR is merged — replacing the old design where a
+// single container held a pod open for up to 2h in a sleep loop. There is deliberately
+// no overall timeout: PR approval is a human process with no correct technical SLA to
+// guess at (confirmed live 2026-09-04 — a real merge took ~4h, well past the previous
+// 2h cap, which had already permanently failed the request by then with no automatic
+// recovery once the late merge happened). An abandoned request just polls harmlessly
+// every pollInterval forever; surfacing "stuck a long time" is a monitoring concern,
+// not something this retry loop should enforce by giving up.
 // pr-watcher is its own Pipeline entry in promise.yaml (not just another container
 // alongside configure-team-onboarding), so each retry is a genuinely fresh Job: Kratix's
 // own "reader" init container re-fetches the live resource from the k8s API every time,
@@ -120,12 +125,9 @@ func runWatcher() {
 	if err != nil {
 		log.Fatalf("parse resource creationTimestamp %q: %v", req.Metadata.CreationTimestamp, err)
 	}
-	elapsed := time.Since(createdAt)
-	if elapsed > maxWait {
-		log.Fatalf("Timed out after %s waiting for PR %s to be merged", maxWait, pr.HTMLURL)
-	}
+	elapsed := time.Since(createdAt).Round(time.Second)
 
-	log.Printf("PR %s not merged yet (waiting %s) — asking Kratix to check again in %s", pr.HTMLURL, elapsed.Round(time.Second), pollInterval)
+	log.Printf("PR %s not merged yet (waiting %s) — asking Kratix to check again in %s", pr.HTMLURL, elapsed, pollInterval)
 	writeWorkflowControl(workflowControl{
 		RetryAfter: pollInterval.String(),
 		Message:    fmt.Sprintf("waiting for PR %s to be merged", pr.HTMLURL),
