@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-api
+  namespace: rest-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rest-api
+  template:
+    metadata:
+      labels:
+        app: rest-api
+    spec:
+      serviceAccountName: rest-api
+      imagePullSecrets:
+        - name: acr-credentials
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rest-api
+          # build-rest-api.yaml rebuilds and pushes both :latest and :<sha> on every
+          # push to services/rest-api/** — same convention as every promise pipeline
+          # image (build-kratix-promises.yml). No auto-commit-back-to-git tagging.
+          image: teknologieur1acr.azurecr.io/rest-api:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rest-api-key
+                  key: apiKey
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest-api
+  namespace: rest-api
+spec:
+  selector:
+    app: rest-api
+  ports:
+    - port: 8080
+      targetPort: 8080

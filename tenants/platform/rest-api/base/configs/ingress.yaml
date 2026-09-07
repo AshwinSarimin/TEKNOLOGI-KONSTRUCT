@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rest-api-ingress
+  namespace: rest-api
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: rest-api.localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rest-api
+            port:
+              number: 8080

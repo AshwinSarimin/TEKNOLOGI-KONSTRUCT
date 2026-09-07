@@ -1,0 +1,65 @@
+name: Build and push REST API to ACR
+
+on:
+  push:
+    branches:
+      - main
+      - feature/setup_infra
+    paths:
+      - 'services/rest-api/**'
+      - '.github/workflows/build-rest-api.yaml'
+
+env:
+  REGISTRY: teknologieur1acr.azurecr.io
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and Push REST API Image
+    environment: prd
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Vet
+        working-directory: services/rest-api
+        run: go vet ./...
+
+      - name: Build
+        working-directory: services/rest-api
+        run: go build ./...
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.REGISTRY }}
+
+      - name: Build and Push Docker Image
+        working-directory: services/rest-api
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/rest-api:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/rest-api:latest \
+            .
+          docker push ${{ env.REGISTRY }}/rest-api:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/rest-api:latest
+
+      - name: Verify image in ACR
+        run: |
+          az acr repository show-tags \
+            --name teknologieur1acr \
+            --repository rest-api \
+            --output table
