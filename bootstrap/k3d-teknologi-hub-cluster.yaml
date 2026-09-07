@@ -16,7 +16,7 @@ metadata:
     platform.kratix: "true"
     platform.crossplane: "false"
     platform.kratix-workloads: "false"
-    platform.rest-api: "false" #true
+    platform.rest-api: "true"
 type: Opaque
 stringData:
   name: k3d-teknologi-hub-cluster
