@@ -1,0 +1,292 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: platform-onboarding
+  title: Platform Onboarding
+  description: |
+    Get your team up and running. Register your team, provision your resources,
+    and get everything set up on the platform — all in about 10 minutes.
+  tags:
+    - platform
+    - onboarding
+spec:
+  owner: group:fundamentals
+  type: onboarding
+
+  parameters:
+
+    # ── Step 1: Introduction ─────────────────────────────────────────────────
+    - title: Welcome
+      description: |
+        ## Get your team up and running
+
+        Register your team, provision your resources, and get everything set up
+        on the platform — all in about 10 minutes.
+
+        This wizard will guide you through:
+
+        1. **Register your team** — create a team definition in the organisation SSoT
+        2. **Get your PR approved** — a platform engineer reviews and merges your team entry
+        3. **Select capabilities** — choose the resources your team needs
+        4. **Request provisioning** — submit your resource requests to the platform
+      properties: {}
+
+    # ── Step 2: Team information ─────────────────────────────────────────────
+    - title: Tell us about your team
+      description: |
+        This information will be used to create a team definition in the SSoT
+        and open a pull request.
+      required:
+        - teamName
+        - displayName
+        - businessUnit
+        - productOwner
+      properties:
+        teamName:
+          title: Team Name
+          type: string
+          description: Unique team identifier used across all resources (e.g. `sat-payments`, `features-kafka`)
+          pattern: '^[a-z0-9-]+$'
+          ui:autofocus: true
+          ui:help: 'Lowercase, hyphenated. This becomes your team identifier.'
+        displayName:
+          title: Display Name
+          type: string
+          description: Human-readable name shown in the portal (e.g. "SAT Payments")
+        description:
+          title: Description
+          type: string
+          description: What does your team own or build?
+          ui:widget: textarea
+          ui:options:
+            rows: 3
+        businessUnit:
+          title: Business Unit
+          type: string
+          description: Which stream does your team belong to?
+          enum:
+            - fundamentals
+            - sat
+            - features
+            - re
+          enumNames:
+            - 'Foundation — Platform'
+            - 'SAT — Stream-Aligned Team'
+            - 'Features — Kafka / Confluent'
+            - 'RE — Runtime Engineering'
+        productOwner:
+          title: Product Owner
+          type: string
+          description: Product Owner responsible for this team
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: User
+        engineeringManager:
+          title: Engineering Manager
+          type: string
+          description: Engineering Manager responsible for this team
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: User
+        teamMembers:
+          title: Team Members
+          type: array
+          description: Members of the team
+          items:
+            type: string
+            ui:field: EntityPicker
+            ui:options:
+              catalogFilter:
+                kind: User
+
+    # ── Step 3: Create PR ────────────────────────────────────────────────────
+    - title: Ready to create your team definition
+      description: |
+        When you submit this wizard, Kratix will generate a team YAML file and
+        open a pull request in the `TEKNOLOGI-KONSTRUCT-STATE` repository.
+
+        **What will be created:**
+
+        - **Repository**: `AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE`
+        - **File**: `model/organization/${{ parameters.businessUnit }}/teams/${{ parameters.teamName }}.yaml`
+      properties: {}
+
+    # ── Step 4: Get PR approved ──────────────────────────────────────────────
+    - title: Get your PR approved
+      description: |
+        Once submitted, Kratix opens a pull request in `TEKNOLOGI-KONSTRUCT-STATE`
+        — share it with **John Doe** (owner of foundation) for approval.
+
+        **Kratix takes over from here — no action needed from you:**
+
+        - Kratix monitors the PR every 30 seconds
+        - Once the PR is merged, resource provisioning begins automatically
+        - You receive a Slack notification on `#platform-notifications` at each stage
+        - Live status is visible on your team page in Backstage
+
+        > ℹ️ Nothing is created until you reach the end of this wizard and click **Create**.
+      properties: {}
+
+    # ── Step 5: Capabilities ─────────────────────────────────────────────────
+    - title: What does your team need?
+      description: |
+        Select the capabilities your team requires. These options determine
+        which resources will be provisioned.
+
+        > ℹ️ KeyVault and Storage Account are available to Features, RE, and
+        > Fundamentals teams only.
+      properties:
+        requestNamespace:
+          title: Kubernetes Namespace
+          type: boolean
+          description: A dedicated Kubernetes namespace on the workload cluster — isolated compute for your team's workloads
+          default: true
+        requestKeyVault:
+          title: Azure KeyVault
+          type: boolean
+          description: A secrets vault for storing credentials, API keys and certificates — required if your services consume sensitive configuration
+          default: false
+        requestStorage:
+          title: Azure Storage Account
+          type: boolean
+          description: Blob and file storage in Azure — use this for artefact storage, data pipelines or log archiving
+          default: false
+
+    # ── Step 6: Request resource provisioning ────────────────────────────────
+    - title: Request resource provisioning
+      description: |
+        Review the resource details below and click **Request** to submit your
+        provisioning requests to the platform.
+
+        **What happens after you click Request:**
+
+        *Automatic (Kratix)*
+        - Kratix picks up the request and schedules the pipelines
+        - Crossplane provisions the Azure resources
+
+        *You will receive*
+        - ✅ Slack: "Request accepted" — immediately after submission
+        - ✅ Slack: "Resource is live" — once each resource is provisioned
+      properties:
+        environment:
+          title: Environment
+          type: string
+          description: Deployment environment — determines naming and which Azure resources back this request
+          default: dev
+          enum:
+            - dev
+            - tst
+            - acc
+            - prd
+          enumNames:
+            - Development
+            - Test
+            - Acceptance
+            - Production
+        storageRegion:
+          title: Storage Region
+          type: string
+          description: Azure region for the Storage Account
+          default: westeurope
+          enum:
+            - westeurope
+            - northeurope
+          enumNames:
+            - West Europe
+            - North Europe
+
+    # ── Step 7: Set up Slack for your team ───────────────────────────────────
+    - title: Set up Slack for your team
+      description: |
+        ## Set up Slack for your team
+
+        #### 1 — Create a Slack channel
+
+        Create a **public** Slack channel for your team following the naming convention:
+
+        ```
+        #team-${{ parameters.teamName }}
+        ```
+
+        Add your team members and set a channel description that explains your
+        team's responsibility.
+
+        #### 2 — Create a Slack user group
+
+        Create a user group so people can easily mention your entire team:
+
+        ```
+        @team-${{ parameters.teamName }}
+        ```
+
+        Add the same team members to this user group.
+      required:
+        - slackChannelCreated
+      properties:
+        slackChannelCreated:
+          title: I have created the Slack channel and user group
+          type: boolean
+          description: Confirm both have been set up before continuing
+          default: false
+
+    # ── Step 8: Summary ──────────────────────────────────────────────────────
+    - title: Onboarding summary
+      description: |
+        Here is a complete overview of your team onboarding for
+        **${{ parameters.displayName }}** (`${{ parameters.teamName }}`).
+
+        ---
+
+        Clicking **Create** below submits this request to the platform.
+
+        ### What happens next
+
+        | Step | Who |
+        |------|-----|
+        | Kratix opens **one PR** in `TEKNOLOGI-KONSTRUCT-STATE` — registers the team in the SSoT and requests approval for the resources below | **Automatic** |
+        | A Fundamentals reviewer approves and merges the PR | **Fundamentals team** |
+        | Kubernetes namespace provisioned on workload cluster (if requested) | **Automatic, after merge** |
+        | Azure KeyVault provisioned (if requested) | **Automatic, after merge** |
+        | Azure Storage Account provisioned (if requested) | **Automatic, after merge** |
+        | Slack notification sent at each stage | **Automatic** |
+        | Slack channel `#team-${{ parameters.teamName }}` creation | **You** |
+
+        Nothing is provisioned until the PR is merged. Watch `#platform-notifications`
+        for the PR link and live status updates from Kratix.
+      properties: {}
+
+  steps:
+    # Submits the TeamOnboardingRequest to the hub cluster. The team-onboarding Kratix
+    # Promise itself opens the single PR that registers the team in the SSoT AND gates
+    # resource provisioning on that PR being merged — see promises/team-onboarding/
+    # workflows/resource/configure/{configure,watcher}.go.
+    - id: request-onboarding
+      name: Submit onboarding request
+      action: kratix:apply
+      input:
+        manifest:
+          apiVersion: marketplace.kratix.io/v1alpha1
+          kind: TeamOnboardingRequest
+          metadata:
+            name: ${{ parameters.teamName }}-${{ parameters.environment }}-onboarding
+            namespace: kratix-workloads
+            labels:
+              # Lets the Backstage Kubernetes plugin find this request from the
+              # team's entity page (matched against backstage.io/kubernetes-id)
+              backstage.io/kubernetes-id: ${{ parameters.teamName }}
+          spec:
+            appName: ${{ parameters.teamName }}
+            displayName: ${{ parameters.displayName }}
+            businessUnit: ${{ parameters.businessUnit }}
+            description: ${{ parameters.description }}
+            productOwner: ${{ parameters.productOwner }}
+            engineeringManager: ${{ parameters.engineeringManager }}
+            teamMembers: ${{ parameters.teamMembers }}
+            environment: ${{ parameters.environment }}
+            location: ${{ parameters.storageRegion }}
+            resources:
+              namespace: ${{ parameters.requestNamespace }}
+              keyvault: ${{ parameters.requestKeyVault }}
+              storageAccount: ${{ parameters.requestStorage }}

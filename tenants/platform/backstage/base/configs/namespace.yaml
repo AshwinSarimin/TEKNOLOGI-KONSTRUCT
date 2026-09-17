@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backstage
+  labels:
+    # Fully enforced — the chart's own Dockerfile already runs as non-root
+    # `node`; podSecurityContext/containerSecurityContext in helm-values.yaml
+    # cover the rest (no privilege escalation, capabilities dropped, seccomp).
+    pod-security.kubernetes.io/enforce: restricted

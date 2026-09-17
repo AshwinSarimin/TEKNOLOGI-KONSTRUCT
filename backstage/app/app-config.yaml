@@ -1,0 +1,72 @@
+app:
+  title: TEKNOLOGI Platform
+  baseUrl: http://localhost:3000
+  packages:
+    exclude:
+      - '@backstage/plugin-notifications'
+      - '@backstage/plugin-signals'
+  extensions:
+    # Sidebar handles these nav items via NavContentBlueprint
+    - nav-item:search: false
+    - nav-item:user-settings: false
+    - nav-item:catalog: false
+    - nav-item:scaffolder: false
+    # Teknologi Dark is the active theme
+    - theme:app/dark: false
+    - theme:app/light: false
+
+organization:
+  name: TEKNOLOGI
+
+backend:
+  baseUrl: http://localhost:7007
+  listen:
+    port: 7007
+  csp:
+    connect-src: ["'self'", 'http:', 'https:']
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+
+integrations:
+  github:
+    - host: github.com
+      apps:
+        - appId: ${GITHUB_APP_ID}
+          installationId: ${GITHUB_APP_INSTALLATION_ID}
+          privateKey: ${GITHUB_APP_PRIVATE_KEY}
+
+catalog:
+  import:
+    entityFilename: catalog-info.yaml
+    pullRequestBranchName: backstage-integration
+  rules:
+    - allow: [Component, System, API, Resource, Location, Template, Domain, Group, User]
+  orphanStrategy: delete
+  processingInterval: { minutes: 30 }
+
+# Auth providers are defined per environment — see app-config.local.yaml and app-config.production.yaml
+auth:
+  providers: {}
+
+scaffolder: {}
+
+# External TechDocs builder: CI generates docs and uploads to Azure Blob Storage.
+# Override to 'local' in app-config.local.yaml for local development.
+techdocs:
+  builder: external
+  publisher:
+    type: azureBlobStorage
+    azureBlobStorage:
+      containerName: ${TECHDOCS_AZURE_CONTAINER_NAME}
+      credentials:
+        accountName: ${TECHDOCS_AZURE_ACCOUNT_NAME}
+        accountKey: ${TECHDOCS_AZURE_ACCOUNT_KEY}
+
+kubernetes: {}
+
+proxy: {}
+
+permission:
+  enabled: true

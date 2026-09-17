@@ -1,0 +1,38 @@
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: platform-engineering
+  namespace: default
+  description: Internal developer platform — self-service infrastructure capabilities for all TEKNOLOGI teams
+spec:
+  owner: fundamentals
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: teknologi-platform
+  namespace: default
+  description: The TEKNOLOGI internal developer platform — Backstage portal, Kratix orchestration, and Crossplane provisioning
+spec:
+  owner: fundamentals
+  domain: platform-engineering
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: kratix-orchestration
+  namespace: default
+  description: Kratix Promise orchestration layer running on the hub cluster — schedules and executes infrastructure pipelines
+spec:
+  owner: fundamentals
+  domain: platform-engineering
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: crossplane-infrastructure
+  namespace: default
+  description: Crossplane provisioning layer on the workload cluster — Azure resources via XRDs and Compositions
+spec:
+  owner: fundamentals
+  domain: platform-engineering

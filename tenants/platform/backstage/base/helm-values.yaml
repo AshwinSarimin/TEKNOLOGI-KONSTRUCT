@@ -1,0 +1,225 @@
+backstage:
+  replicas: 1
+  image:
+    # build-backstage.yaml rebuilds and pushes both :latest and :<sha> on every
+    # push to backstage/app/** — same convention as every promise pipeline image
+    # and rest-api (build-kratix-promises.yml). No auto-commit-back-to-git tagging.
+    repository: backstage
+    tag: "latest"
+    pullPolicy: Always
+    pullSecrets:
+      - acr-credentials
+  readinessProbe:
+    httpGet:
+      path: /healthcheck
+      port: 7007
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  livenessProbe:
+    httpGet:
+      path: /healthcheck
+      port: 7007
+    initialDelaySeconds: 60
+    periodSeconds: 15
+    failureThreshold: 3
+  containerPorts:
+    backend: 7007
+  # Pod Security Standards (restricted) — the chart's own Dockerfile already
+  # runs as the non-root `node` user (uid/gid 1000 in every official Node.js
+  # image); this just makes it explicit and adds what the image alone doesn't:
+  # no privilege escalation, all capabilities dropped, default seccomp.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+  # Inline app config — chart auto-generates a ConfigMap and mounts it
+  appConfig:
+    app:
+      title: TEKNOLOGI-KONSTRUCT
+      baseUrl: http://backstage.localhost:8080
+      packages: all
+      extensions:
+        # Disable built-in nav items — sidebar handles them via NavContentBlueprint
+        - nav-item:catalog: false
+        - nav-item:scaffolder: false
+        - nav-item:search: false
+        - nav-item:user-settings: false
+        # Disable default Backstage themes — custom Teknologi Dark is used
+        - theme:app/dark: false
+        - theme:app/light: false
+    organization:
+      name: TEKNOLOGI-KONSTRUCT
+    backend:
+      baseUrl: http://backstage.localhost:8080
+      listen:
+        port: 7007
+      database:
+        client: better-sqlite3
+        connection: ':memory:'
+      cors:
+        origin: http://backstage.localhost:8080
+        methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+        credentials: true
+    integrations:
+      github:
+        - host: github.com
+          apps:
+            - appId: ${GITHUB_APP_ID}
+              installationId: ${GITHUB_APP_INSTALLATION_ID}
+              privateKey: ${GITHUB_APP_PRIVATE_KEY}
+              clientId: ${GITHUB_APP_CLIENT_ID}
+              clientSecret: ${GITHUB_APP_CLIENT_SECRET}
+    catalog:
+      rules:
+        - allow: [Component, System, API, Resource, Location, Template, Domain, Group, User]
+      locations:
+        # Org structure: teams and users
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/catalog/groups.yaml
+        # Platform topology: domains and systems
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/catalog/systems.yaml
+        # Platform components: services and promises
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/catalog/components.yaml
+        # Onboarded teams (SSoT rendered by the team-onboarding Promise) — discovered
+        # by glob (plugin-catalog-backend-module-github) instead of one URL per team
+        - type: github-discovery
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE/blob/main/model/organization/*/teams/*.yaml
+        # Software Templates
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/onboarding-wizard.yaml
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/capabilities-request.yaml
+        # Flow B: individual Promise templates (keyvault/storage gated by permission policy)
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/namespace-request.yaml
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/keyvault-request.yaml
+        - type: url
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/storage-account-request.yaml
+    techdocs:
+      builder: local
+      generator:
+        runIn: local
+      publisher:
+        type: local
+    kubernetes:
+      serviceLocatorMethod:
+        type: multiTenant
+      clusterLocatorMethods:
+        - type: config
+          clusters:
+            # Hub cluster — Backstage runs in it, so use the pod's own service account
+            # (authProvider serviceAccount + no token = in-cluster config)
+            - name: k3d-teknologi-hub-cluster
+              url: https://kubernetes.default.svc
+              authProvider: serviceAccount
+              caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              skipMetricsLookup: true
+      customResources:
+        - group: marketplace.kratix.io
+          apiVersion: v1alpha1
+          plural: teamonboardingrequests
+    notifications:
+      processors: []
+    # Required for the custom permission policy (permissionPolicy.ts) to be enforced
+    permission:
+      enabled: true
+    # RBAC hardening: guest auth removed entirely — no anonymous/impersonated
+    # identity. Two real providers, both resolving to a real catalog User (no
+    # fallback identity for either) — see backstage/catalog/groups.yaml
+    # annotations. Only ashwin-sarimin carries both; the other demo users
+    # (alex-de-vries, sara-bergman, kai-lindqvist) cannot sign in at all now —
+    # Flow B's Features-only demo previously relied on guest impersonating
+    # alex-de-vries; demoing it now means temporarily adding ashwin-sarimin to
+    # group:default/features in the catalog, or narrating the gap live.
+    auth:
+      environment: development
+      providers:
+        # Entra ID (Microsoft) — primary enterprise identity provider.
+        # App Registration is a manual step (see README.md "Entra ID (Backstage
+        # sign-in)"); requires redirect URI
+        # http://backstage.localhost:8080/api/auth/microsoft/handler/frame.
+        microsoft:
+          development:
+            clientId: ${ENTRA_CLIENT_ID}
+            clientSecret: ${ENTRA_CLIENT_SECRET}
+            tenantId: ${ENTRA_TENANT_ID}
+            signIn:
+              resolvers:
+                - resolver: emailMatchingUserEntityAnnotation
+        # GitHub — reuses the same GitHub App Backstage already integrates with
+        # (clientId/clientSecret below = GITHUB_APP_CLIENT_ID/SECRET). Resolver
+        # matches the signed-in GitHub account's node ID against each catalog
+        # User's github.com/user-id annotation. Requires the GitHub App to have
+        # "Sign in with GitHub" enabled and callback URL
+        # http://backstage.localhost:8080/api/auth/github/handler/frame
+        # registered — both are GitHub App console settings, not committed here.
+        github:
+          development:
+            clientId: ${GITHUB_APP_CLIENT_ID}
+            clientSecret: ${GITHUB_APP_CLIENT_SECRET}
+            signIn:
+              resolvers:
+                - resolver: userIdMatchingUserEntityAnnotation
+  extraEnvVars:
+    - name: NODE_ENV
+      value: production
+    - name: GITHUB_APP_ID
+      valueFrom:
+        secretKeyRef:
+          name: github-app
+          key: appID
+    - name: GITHUB_APP_INSTALLATION_ID
+      valueFrom:
+        secretKeyRef:
+          name: github-app
+          key: installationID
+    - name: GITHUB_APP_PRIVATE_KEY
+      valueFrom:
+        secretKeyRef:
+          name: github-app
+          key: privateKey
+    - name: GITHUB_APP_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: github-app
+          key: clientId
+    - name: GITHUB_APP_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: github-app
+          key: clientSecret
+    - name: ENTRA_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: entra-id
+          key: clientId
+    - name: ENTRA_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: entra-id
+          key: clientSecret
+    - name: ENTRA_TENANT_ID
+      valueFrom:
+        secretKeyRef:
+          name: entra-id
+          key: tenantId
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+service:
+  type: ClusterIP
+  ports:
+    backend: 7007

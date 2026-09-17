@@ -1,0 +1,89 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: backstage-portal
+  namespace: default
+  description: TEKNOLOGI developer portal — Backstage instance serving the platform UI and Software Templates
+  annotations:
+    backstage.io/source-location: url:https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/tree/main/backstage/app
+    github.com/project-slug: AshwinSarimin/TEKNOLOGI-KONSTRUCT
+spec:
+  type: service
+  lifecycle: experimental
+  owner: fundamentals
+  system: teknologi-platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: kratix-hub
+  namespace: default
+  description: Kratix running on the hub cluster — Promise scheduling, pipeline execution, and GitStateStore writes to the ORCHESTRATION repo
+  annotations:
+    backstage.io/source-location: url:https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/tree/main/promises
+    github.com/project-slug: AshwinSarimin/TEKNOLOGI-KONSTRUCT
+spec:
+  type: service
+  lifecycle: experimental
+  owner: fundamentals
+  system: kratix-orchestration
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: crossplane-provider-azure
+  namespace: default
+  description: Crossplane Azure provider on the workload cluster — provisions namespaces, KeyVaults, and Storage Accounts via XRDs
+  annotations:
+    backstage.io/source-location: url:https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/tree/main/tenants/platform/crossplane
+    github.com/project-slug: AshwinSarimin/TEKNOLOGI-KONSTRUCT
+spec:
+  type: service
+  lifecycle: experimental
+  owner: fundamentals
+  system: crossplane-infrastructure
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: namespace-promise
+  namespace: default
+  description: Kratix Promise for AKS namespace provisioning with Cloudflare ingress — available to all teams
+  annotations:
+    backstage.io/source-location: url:https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/tree/main/promises/namespace
+    github.com/project-slug: AshwinSarimin/TEKNOLOGI-KONSTRUCT
+spec:
+  type: service
+  lifecycle: experimental
+  owner: fundamentals
+  system: kratix-orchestration
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: keyvault-promise
+  namespace: default
+  description: Kratix Promise for Azure KeyVault provisioning via Crossplane — available to Features and RE teams
+  annotations:
+    backstage.io/source-location: url:https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/tree/main/promises/keyvault
+    github.com/project-slug: AshwinSarimin/TEKNOLOGI-KONSTRUCT
+spec:
+  type: service
+  lifecycle: experimental
+  owner: fundamentals
+  system: kratix-orchestration
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: storage-account-promise
+  namespace: default
+  description: Kratix Promise for Azure Storage Account provisioning via Terraform — available to platform teams
+  annotations:
+    backstage.io/source-location: url:https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/tree/main/promises/storage-account
+    github.com/project-slug: AshwinSarimin/TEKNOLOGI-KONSTRUCT
+spec:
+  type: service
+  lifecycle: experimental
+  owner: fundamentals
+  system: kratix-orchestration

@@ -1,0 +1,62 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: namespace-request
+  title: Kubernetes Namespace
+  description: |
+    Request a Kubernetes namespace on the workload cluster. Available to all teams —
+    provisioned directly, no approval required.
+  tags:
+    - platform
+    - kratix
+spec:
+  owner: group:fundamentals
+  type: resource
+
+  parameters:
+    - title: Namespace details
+      required:
+        - appName
+        - environment
+      properties:
+        appName:
+          title: Application Name
+          type: string
+          description: Lowercase, hyphenated — the namespace is named {appName}-{environment}
+          pattern: '^[a-z][a-z0-9-]*$'
+          maxLength: 20
+        environment:
+          title: Environment
+          type: string
+          default: dev
+          enum: [dev, tst, acc, prd]
+        networkVisibility:
+          title: Network Visibility
+          type: string
+          default: private
+          enum: [private, public]
+
+  steps:
+    - id: request-namespace
+      name: Submit namespace request
+      action: kratix:apply
+      input:
+        manifest:
+          apiVersion: marketplace.kratix.io/v1alpha1
+          kind: NamespaceRequest
+          metadata:
+            name: ${{ parameters.appName }}-${{ parameters.environment }}-ns
+            namespace: kratix-workloads
+            labels:
+              backstage.io/kubernetes-id: ${{ parameters.appName }}
+          spec:
+            namespaceName: ${{ parameters.appName }}-${{ parameters.environment }}
+            environment: ${{ parameters.environment }}
+            networkVisibility: ${{ parameters.networkVisibility }}
+
+  output:
+    text:
+      - title: Request submitted
+        content: |
+          Namespace `${{ parameters.appName }}-${{ parameters.environment }}` is being provisioned.
+          You will receive a Slack notification when it is live.

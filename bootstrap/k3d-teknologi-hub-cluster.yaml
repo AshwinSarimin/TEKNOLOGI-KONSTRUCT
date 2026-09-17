@@ -12,7 +12,7 @@ metadata:
     platform.cert-manager: "true"
     platform.external-secrets: "true"
     platform.argocd: "true"
-    platform.backstage: "false" #true
+    platform.backstage: "true"
     platform.kratix: "true"
     platform.crossplane: "false"
     platform.kratix-workloads: "false"
