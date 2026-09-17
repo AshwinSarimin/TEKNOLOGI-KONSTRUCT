@@ -552,7 +552,9 @@ kubectl label secret teknologi-platform-orchestration-repo -n argocd \
 
 The GitHub App needs configurations for Backstage to have GitHub signin
 - https://github.com/settings/apps 
-- General → Identifying and authorizing users section is where you enable "Request user authorization (OAuth) during installation" (this is what turns on "Sign in with GitHub App"), and the Callback URL field is where you add http://backstage.localhost/api/auth/github/handler/frame.
+- General → Identifying and authorizing users:
+  - Enable "Request user authorization (OAuth) during installation" (this is what turns on "Sign in with GitHub App")
+  - Add the Callback URL field: https://backstage.konstruct.teknologik8s.nl/api/auth/github/handler/frame
 
 
 ```

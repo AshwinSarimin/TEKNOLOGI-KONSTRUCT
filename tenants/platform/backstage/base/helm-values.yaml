@@ -42,7 +42,7 @@ backstage:
   appConfig:
     app:
       title: TEKNOLOGI-KONSTRUCT
-      baseUrl: http://backstage.localhost:8080
+      baseUrl: https://backstage.konstruct.teknologik8s.nl
       packages: all
       extensions:
         # Disable built-in nav items — sidebar handles them via NavContentBlueprint
@@ -56,14 +56,14 @@ backstage:
     organization:
       name: TEKNOLOGI-KONSTRUCT
     backend:
-      baseUrl: http://backstage.localhost:8080
+      baseUrl: https://backstage.konstruct.teknologik8s.nl
       listen:
         port: 7007
       database:
         client: better-sqlite3
         connection: ':memory:'
       cors:
-        origin: http://backstage.localhost:8080
+        origin: https://backstage.konstruct.teknologik8s.nl
         methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
         credentials: true
     integrations:
@@ -146,12 +146,14 @@ backstage:
         # Entra ID (Microsoft) — primary enterprise identity provider.
         # App Registration is a manual step (see README.md "Entra ID (Backstage
         # sign-in)"); requires redirect URI
-        # http://backstage.localhost:8080/api/auth/microsoft/handler/frame.
+        # https://backstage.konstruct.teknologik8s.nl/api/auth/microsoft/handler/frame.
         microsoft:
           development:
             clientId: ${ENTRA_CLIENT_ID}
             clientSecret: ${ENTRA_CLIENT_SECRET}
-            tenantId: ${ENTRA_TENANT_ID}
+            # Not a secret — same tenant ID ArgoCD hardcodes in its own oidc.config
+            # (tenants/platform/argocd/base/helm-values.yaml).
+            tenantId: "99f9af3a-fd8b-41ec-b487-483a0c562b5c"
             signIn:
               resolvers:
                 - resolver: emailMatchingUserEntityAnnotation
@@ -160,7 +162,7 @@ backstage:
         # matches the signed-in GitHub account's node ID against each catalog
         # User's github.com/user-id annotation. Requires the GitHub App to have
         # "Sign in with GitHub" enabled and callback URL
-        # http://backstage.localhost:8080/api/auth/github/handler/frame
+        # https://backstage.konstruct.teknologik8s.nl/api/auth/github/handler/frame
         # registered — both are GitHub App console settings, not committed here.
         github:
           development:
@@ -207,11 +209,6 @@ backstage:
         secretKeyRef:
           name: entra-id
           key: clientSecret
-    - name: ENTRA_TENANT_ID
-      valueFrom:
-        secretKeyRef:
-          name: entra-id
-          key: tenantId
   resources:
     requests:
       cpu: 100m

@@ -5,8 +5,12 @@ metadata:
   namespace: backstage
 spec:
   ingressClassName: traefik
+  tls:
+  - hosts:
+    - backstage.konstruct.teknologik8s.nl
+    secretName: backstage-tls
   rules:
-  - host: backstage.localhost
+  - host: backstage.konstruct.teknologik8s.nl
     http:
       paths:
       - path: /

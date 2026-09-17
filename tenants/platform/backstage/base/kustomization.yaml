@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - configs/namespace.yaml
   - configs/ingress.yaml
+  - configs/certificate.yaml
   - configs/acr-credentials.yaml
   - configs/github-app.yaml
   - configs/entra-id.yaml
