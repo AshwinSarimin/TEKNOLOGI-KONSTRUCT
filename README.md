@@ -212,6 +212,9 @@ SP=$(az ad sp create-for-rbac \
   --skip-assignment \
   --output json)
 
+CLOUD_CLIENT_ID=$(echo $SP | jq -r '.appId')
+CLOUD_SP_PASSWORD=$(echo $SP | jq -r '.password')
+
 # Role assignment 1: Terraform tfstate backend
 STORAGE_ACCOUNT_ID=$(az storage account show \
   --name "$SA_NAME" \
@@ -219,7 +222,7 @@ STORAGE_ACCOUNT_ID=$(az storage account show \
   --query id -o tsv)
 
 az role assignment create \
-  --assignee "$SP_APP_ID" \
+  --assignee "$CLOUD_CLIENT_ID" \
   --role "Storage Blob Data Contributor" \
   --scope "$STORAGE_ACCOUNT_ID"
 
@@ -230,18 +233,15 @@ KEY_VAULT_ID=$(az keyvault show \
   --query id -o tsv)
 
 az role assignment create \
-  --assignee "$SP_APP_ID" \
+  --assignee "$CLOUD_CLIENT_ID" \
   --role "Key Vault Secrets User" \
   --scope "$KEY_VAULT_ID"
 
 # Role assignment 3: Contributor on subcription level for Terraform and Crossplane
 az role assignment create \
-  --assignee $SP_APP_ID \
+  --assignee "$CLOUD_CLIENT_ID" \
   --role Contributor \
   --scope /subscriptions/e229909d-d13f-44aa-ae26-046922d181eb
-
-CLOUD_CLIENT_ID=$(echo $SP | jq -r '.appId')
-CLOUD_SP_PASSWORD=$(echo $SP | jq -r '.password')
 
 echo "CLOUD_CLIENT_ID:  $CLOUD_CLIENT_ID"
 echo "CLOUD_SP_PASSWORD: $CLOUD_SP_PASSWORD"  
