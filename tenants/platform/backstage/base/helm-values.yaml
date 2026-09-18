@@ -176,14 +176,14 @@ backstage:
       value: production
     - name: GITHUB_APP_ID
       valueFrom:
-        secretKeyRef:
-          name: github-app
-          key: appID
+        configMapKeyRef:
+          name: platform-config
+          key: githubAppId
     - name: GITHUB_APP_INSTALLATION_ID
       valueFrom:
-        secretKeyRef:
-          name: github-app
-          key: installationID
+        configMapKeyRef:
+          name: platform-config
+          key: githubAppInstallationId
     - name: GITHUB_APP_PRIVATE_KEY
       valueFrom:
         secretKeyRef:
@@ -191,9 +191,9 @@ backstage:
           key: privateKey
     - name: GITHUB_APP_CLIENT_ID
       valueFrom:
-        secretKeyRef:
-          name: github-app
-          key: clientId
+        configMapKeyRef:
+          name: platform-config
+          key: githubAppClientId
     - name: GITHUB_APP_CLIENT_SECRET
       valueFrom:
         secretKeyRef:

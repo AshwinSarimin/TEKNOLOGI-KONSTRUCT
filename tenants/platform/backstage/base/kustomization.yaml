@@ -5,6 +5,7 @@ resources:
   - configs/ingress.yaml
   - configs/certificate.yaml
   - configs/acr-credentials.yaml
+  - configs/platform-config.yaml
   - configs/github-app.yaml
   - configs/entra-id.yaml
   - configs/kubernetes-plugin-rbac.yaml

@@ -11,18 +11,9 @@ spec:
   target:
     name: github-app
   data:
-  - secretKey: appID
-    remoteRef:
-      key: platform-github-app-id
-  - secretKey: installationID
-    remoteRef:
-      key: platform-github-app-installation-id
   - secretKey: privateKey
     remoteRef:
       key: platform-github-app-private-key
-  - secretKey: clientId
-    remoteRef:
-      key: platform-github-app-client-id
   - secretKey: clientSecret
     remoteRef:
       key: platform-github-app-client-secret

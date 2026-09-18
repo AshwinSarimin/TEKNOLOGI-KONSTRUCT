@@ -212,14 +212,14 @@ spec:
                   key: orchestrationBaseBranch
             - name: GITHUB_APP_ID
               valueFrom:
-                secretKeyRef:
-                  name: github-app
-                  key: appID
+                configMapKeyRef:
+                  name: platform-config
+                  key: githubAppId
             - name: GITHUB_APP_INSTALLATION_ID
               valueFrom:
-                secretKeyRef:
-                  name: github-app
-                  key: installationID
+                configMapKeyRef:
+                  name: platform-config
+                  key: githubAppInstallationId
             - name: GITHUB_APP_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
@@ -297,14 +297,14 @@ spec:
                   key: orchestrationBaseBranch
             - name: GITHUB_APP_ID
               valueFrom:
-                secretKeyRef:
-                  name: github-app
-                  key: appID
+                configMapKeyRef:
+                  name: platform-config
+                  key: githubAppId
             - name: GITHUB_APP_INSTALLATION_ID
               valueFrom:
-                secretKeyRef:
-                  name: github-app
-                  key: installationID
+                configMapKeyRef:
+                  name: platform-config
+                  key: githubAppInstallationId
             - name: GITHUB_APP_PRIVATE_KEY
               valueFrom:
                 secretKeyRef:

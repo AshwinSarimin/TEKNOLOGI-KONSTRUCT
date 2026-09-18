@@ -80,25 +80,25 @@ spec:
               value: "true"
             - name: TF_BACKEND_RESOURCE_GROUP
               valueFrom:
-                secretKeyRef:
-                  name: terraform-backend-config
-                  key: resource_group_name
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendResourceGroup
             - name: TF_BACKEND_STORAGE_ACCOUNT
               valueFrom:
-                secretKeyRef:
-                  name: terraform-backend-config
-                  key: storage_account_name
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendStorageAccount
             - name: TF_BACKEND_CONTAINER
               valueFrom:
-                secretKeyRef:
-                  name: terraform-backend-config
-                  key: container_name
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendContainer
                   optional: true
             - name: ARM_CLIENT_ID
               valueFrom:
-                secretKeyRef:
-                  name: terraform-azure-creds
-                  key: client_id
+                configMapKeyRef:
+                  name: platform-config
+                  key: cloudClientId
             - name: ARM_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -106,14 +106,14 @@ spec:
                   key: client_secret
             - name: ARM_TENANT_ID
               valueFrom:
-                secretKeyRef:
-                  name: terraform-azure-creds
-                  key: tenant_id
+                configMapKeyRef:
+                  name: platform-config
+                  key: azureTenantId
             - name: ARM_SUBSCRIPTION_ID
               valueFrom:
-                secretKeyRef:
-                  name: terraform-azure-creds
-                  key: subscription_id
+                configMapKeyRef:
+                  name: platform-config
+                  key: cloudSubscriptionId
             - name: SLACK_WEBHOOK_URL
               valueFrom:
                 secretKeyRef:

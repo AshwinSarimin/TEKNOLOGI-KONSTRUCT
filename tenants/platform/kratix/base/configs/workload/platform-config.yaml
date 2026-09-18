@@ -12,3 +12,15 @@ data:
   orchestrationOwner: AshwinSarimin
   orchestrationRepo: TEKNOLOGI-KONSTRUCT-STATE
   orchestrationBaseBranch: main
+  # Added 2026-09-18 — consolidated out of Key Vault (see Architecture.md's
+  # "Secret Management" section): these are public identifiers, not secrets,
+  # per the same reasoning already applied to azureTenantId above.
+  githubAppId: "4461973"
+  githubAppInstallationId: "150674345"
+  terraformBackendResourceGroup: teknologi-eur1-prd-k8s-rg
+  terraformBackendStorageAccount: teknologieur1sa
+  terraformBackendContainer: tfstate
+  # teknologi-platform-cloud SP's client ID — not the secret. Same tenant as
+  # azureTenantId above (one Azure AD tenant for the whole subscription).
+  cloudClientId: 62a7a50c-164c-4ba5-9247-031c47a76cc9
+  cloudSubscriptionId: e229909d-d13f-44aa-ae26-046922d181eb

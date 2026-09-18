@@ -1,0 +1,14 @@
+# Non-secret GitHub App identifiers Backstage needs as env vars. Mirrors
+# tenants/platform/kratix/base/configs/workload/platform-config.yaml — ConfigMaps
+# are namespace-scoped so each consuming namespace needs its own copy, kept
+# minimal to what that namespace actually uses (Backstage has no use for the
+# Terraform backend or Crossplane SP fields the kratix-workloads copy carries).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: backstage
+data:
+  githubAppId: "4461973"
+  githubAppInstallationId: "150674345"
+  githubAppClientId: Iv23liHBkCHae2e7hTHx
