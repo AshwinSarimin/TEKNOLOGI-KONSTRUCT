@@ -10,7 +10,7 @@ metadata:
 spec:
   type: service
   lifecycle: experimental
-  owner: fundamentals
+  owner: platform-core
   system: teknologi-platform
 ---
 apiVersion: backstage.io/v1alpha1
@@ -25,7 +25,7 @@ metadata:
 spec:
   type: service
   lifecycle: experimental
-  owner: fundamentals
+  owner: platform-core
   system: kratix-orchestration
 ---
 apiVersion: backstage.io/v1alpha1
@@ -40,7 +40,7 @@ metadata:
 spec:
   type: service
   lifecycle: experimental
-  owner: fundamentals
+  owner: platform-core
   system: crossplane-infrastructure
 ---
 apiVersion: backstage.io/v1alpha1
@@ -55,7 +55,7 @@ metadata:
 spec:
   type: service
   lifecycle: experimental
-  owner: fundamentals
+  owner: platform-core
   system: kratix-orchestration
 ---
 apiVersion: backstage.io/v1alpha1
@@ -70,7 +70,7 @@ metadata:
 spec:
   type: service
   lifecycle: experimental
-  owner: fundamentals
+  owner: platform-core
   system: kratix-orchestration
 ---
 apiVersion: backstage.io/v1alpha1
@@ -85,5 +85,5 @@ metadata:
 spec:
   type: service
   lifecycle: experimental
-  owner: fundamentals
+  owner: platform-core
   system: kratix-orchestration

@@ -9,7 +9,7 @@ metadata:
   tags:
     - platform
     - kratix
-    # Gated by the platform permission policy — only Fundamentals members
+    # Gated by the platform permission policy — only Platform Core members
     # can execute this template (see backend/src/permissionPolicy.ts)
     - platform-only
   # The label hides the entity from catalog/Create lists for non-members;
@@ -17,7 +17,7 @@ metadata:
   labels:
     teknologi.io/access: platform-only
 spec:
-  owner: group:fundamentals
+  owner: group:platform-core
   type: resource
 
   parameters:

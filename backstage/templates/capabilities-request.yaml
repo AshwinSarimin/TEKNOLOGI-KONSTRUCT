@@ -2,26 +2,26 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: platform-capabilities-request
-  title: Request Fundamentals Capabilities
+  title: Request Platform Capabilities
   description: |
     Request platform resources for your system.
-    Available to platform teams (Fundamentals, RE, Features) only.
+    Available to platform teams (Platform Core, Research, Product) only.
   tags:
     - platform
     - capabilities
 spec:
-  owner: group:fundamentals
+  owner: group:platform-core
   type: service
 
   parameters:
 
     # ── Page 1: Select resources ─────────────────────────────────────────────
-    - title: Request Fundamentals Capabilities
+    - title: Request Platform Capabilities
       description: |
         Select your team, environment, and the resources you need.
         Resource names will be derived from your system name and environment.
 
-        > ℹ️ Available to **platform teams only** (Fundamentals, RE, Features).
+        > ℹ️ Available to **platform teams only** (Platform Core, Research, Product).
       required:
         - platformTeam
         - environment
@@ -32,13 +32,13 @@ spec:
           type: string
           description: The platform team requesting these resources
           enum:
-            - fundamentals
-            - re
-            - features
+            - platform-core
+            - research
+            - product
           enumNames:
-            - Fundamentals — Platform
-            - RE — Runtime Engineering
-            - Features — Kafka / Confluent
+            - Platform Core — Platform
+            - Research — Runtime Engineering
+            - Product — Kafka / Confluent
           ui:autofocus: true
         environment:
           title: Environment

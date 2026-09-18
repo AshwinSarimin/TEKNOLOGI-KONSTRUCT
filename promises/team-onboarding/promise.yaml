@@ -37,7 +37,7 @@ spec:
                   businessUnit:
                     type: string
                     description: "Which stream the team belongs to — used for the SSoT file path"
-                    enum: [fundamentals, sat, features, re]
+                    enum: [platform-core, commerce, product, research]
                   description:
                     type: string
                     description: "What the team owns or builds — included in the team definition"

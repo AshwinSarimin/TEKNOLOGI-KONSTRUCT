@@ -21,7 +21,7 @@ import {
 
 /**
  * Flow B gating: templates marked `features-only` are visible/executable only by
- * members of the Features or RE teams; `platform-only` requires Fundamentals.
+ * members of the Product or Research teams; `platform-only` requires Platform Core.
  * Enforced twice: the `teknologi.io/access` label hides the entity from catalog
  * lists (which is what the Create page and Catalog page render), and the tag of
  * the same name blocks scaffolder parameter/step access as defense in depth.
@@ -36,8 +36,8 @@ class PlatformPermissionPolicy implements PermissionPolicy {
     const memberOfAny = (groups: string[]) =>
       groups.some(g => ownership.includes(`group:default/${g}`));
     const deniedAccessLevels = [
-      ...(memberOfAny(['features', 're']) ? [] : ['features-only']),
-      ...(memberOfAny(['fundamentals']) ? [] : ['platform-only']),
+      ...(memberOfAny(['product', 'research']) ? [] : ['features-only']),
+      ...(memberOfAny(['platform-core']) ? [] : ['platform-only']),
     ];
 
     if (deniedAccessLevels.length === 0) {

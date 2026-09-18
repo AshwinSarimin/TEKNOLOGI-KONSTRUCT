@@ -10,24 +10,24 @@ spec:
     displayName: Platform Engineering
     email: platform@teknologi.nl
   children:
-    - fundamentals
-    - features
-    - re
-    - sat
+    - platform-core
+    - product
+    - research
+    - commerce
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
-  name: fundamentals
+  name: platform-core
   namespace: default
   description: Core platform tooling, developer experience, GitOps infrastructure, and Kratix orchestration
   annotations:
-    backstage.io/kubernetes-id: fundamentals
+    backstage.io/kubernetes-id: platform-core
 spec:
   type: team
   profile:
-    displayName: Fundamentals
-    email: fundamentals@teknologi.nl
+    displayName: Platform Core
+    email: platform-core@teknologi.nl
   parent: platform-engineering
   children: []
   members:
@@ -36,16 +36,16 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
-  name: features
+  name: product
   namespace: default
   description: Kafka and Confluent capabilities for stream-aligned teams
   annotations:
-    backstage.io/kubernetes-id: features
+    backstage.io/kubernetes-id: product
 spec:
   type: team
   profile:
-    displayName: Features
-    email: features@teknologi.nl
+    displayName: Product
+    email: product@teknologi.nl
   parent: platform-engineering
   children: []
   members:
@@ -54,16 +54,16 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
-  name: re
+  name: research
   namespace: default
-  description: Reliability Engineering — observability and shared platform services for SATs
+  description: Reliability engineering — observability and shared platform services for business-unit teams
   annotations:
-    backstage.io/kubernetes-id: re
+    backstage.io/kubernetes-id: research
 spec:
   type: team
   profile:
-    displayName: RE
-    email: re@teknologi.nl
+    displayName: Research
+    email: research@teknologi.nl
   parent: platform-engineering
   children: []
   members:
@@ -72,38 +72,39 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
-  name: sat
+  name: commerce
   namespace: default
   # Fixes the EntityRelationWarning seen on onboarded-team pages (2026-07-27):
-  # team-onboarding's businessUnit enum ([fundamentals, sat, features, re]) sets
-  # spec.parent to the literal value "sat" for every onboarded stream-aligned
-  # team, but no group:default/sat existed — only the specific sat-ecommerce
-  # team did. "sat" is the parent business unit; multiple specific SAT teams
-  # (sat-ecommerce and any future ones) roll up into it as children.
-  description: Stream-Aligned Teams — business-unit parent for teams onboarded with businessUnit=sat
+  # team-onboarding's businessUnit enum ([platform-core, commerce, product, research]) sets
+  # spec.parent to the literal value "commerce" for every onboarded team under
+  # that business unit, but no group:default/commerce existed — only the specific
+  # commerce-ecommerce team did. "commerce" is the parent business unit; multiple
+  # specific commerce teams (commerce-ecommerce and any future ones) roll up into
+  # it as children.
+  description: Business-unit parent for teams onboarded with businessUnit=commerce
 spec:
   type: business-unit
   profile:
-    displayName: SAT
-    email: sat@teknologi.nl
+    displayName: Commerce
+    email: commerce@teknologi.nl
   parent: platform-engineering
   children:
-    - sat-ecommerce
+    - commerce-ecommerce
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
-  name: sat-ecommerce
+  name: commerce-ecommerce
   namespace: default
   description: Stream-aligned team — eCommerce, consumer of platform capabilities
   annotations:
-    backstage.io/kubernetes-id: sat-ecommerce
+    backstage.io/kubernetes-id: commerce-ecommerce
 spec:
   type: team
   profile:
-    displayName: SAT eCommerce
-    email: sat-ecommerce@teknologi.nl
-  parent: sat
+    displayName: Commerce eCommerce
+    email: commerce-ecommerce@teknologi.nl
+  parent: commerce
   children: []
   members:
     - kai-lindqvist
@@ -127,7 +128,7 @@ spec:
     displayName: Ashwin Sarimin
     email: ashwin.sarimin@teknologi.nl
   memberOf:
-    - fundamentals
+    - platform-core
 ---
 apiVersion: backstage.io/v1alpha1
 kind: User
@@ -139,7 +140,7 @@ spec:
     displayName: Alex de Vries
     email: alex.devries@teknologi.nl
   memberOf:
-    - features
+    - product
 ---
 apiVersion: backstage.io/v1alpha1
 kind: User
@@ -151,7 +152,7 @@ spec:
     displayName: Sara Bergman
     email: sara.bergman@teknologi.nl
   memberOf:
-    - re
+    - research
 ---
 apiVersion: backstage.io/v1alpha1
 kind: User
@@ -163,4 +164,4 @@ spec:
     displayName: Kai Lindqvist
     email: kai.lindqvist@teknologi.nl
   memberOf:
-    - sat-ecommerce
+    - commerce-ecommerce
