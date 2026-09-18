@@ -1,0 +1,38 @@
+# rest-api's own ServiceAccount, scoped narrowly to create/get/list the Promise
+# request kinds — unlike Backstage's team-onboarding-requester (bound to
+# system:authenticated, since Backstage is the trusted broker for many human
+# users), rest-api authenticates its own callers at the HTTP layer (shared API
+# key), so its k8s identity should be exactly this one service, nothing broader.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rest-api
+  namespace: rest-api
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rest-api-requester
+rules:
+- apiGroups: ["marketplace.kratix.io"]
+  resources:
+  - teamonboardingrequests
+  - namespacerequests
+  - keyvaultrequests
+  - storageaccountrequests
+  - storageaccountterraformrequests
+  verbs: ["create", "get", "list", "watch", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rest-api-requester
+  namespace: kratix-workloads
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rest-api-requester
+subjects:
+- kind: ServiceAccount
+  name: rest-api
+  namespace: rest-api

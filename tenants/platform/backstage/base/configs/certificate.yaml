@@ -1,0 +1,18 @@
+# Mirrors tenants/platform/argocd/overlays/dev/hub/certificate.yaml exactly —
+# same ClusterIssuer, same DNS-01 solver against the same owned zone
+# (teknologik8s.nl). DNS-01 only needs a temporary TXT record to prove domain
+# control; no public A/CNAME record is needed (confirmed: argocd.konstruct.teknologik8s.nl
+# has none either). Local browser resolution comes from the /etc/hosts entry
+# README's prerequisites section already adds.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: backstage-tls
+  namespace: backstage
+spec:
+  secretName: backstage-tls
+  dnsNames:
+    - backstage.konstruct.teknologik8s.nl
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer

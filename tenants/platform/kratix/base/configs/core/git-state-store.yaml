@@ -1,0 +1,12 @@
+apiVersion: platform.kratix.io/v1alpha1
+kind: GitStateStore
+metadata:
+  name: default
+  namespace: kratix-platform-system
+spec:
+  authMethod: githubApp
+  branch: main
+  secretRef:
+    name: github-app
+    namespace: kratix-platform-system
+  url: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE.git

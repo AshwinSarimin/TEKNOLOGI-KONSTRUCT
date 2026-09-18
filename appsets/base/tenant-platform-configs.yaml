@@ -1,0 +1,119 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tenant-platform-configs
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+
+  # Backstage — clusters with platform.backstage: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.backstage: "true"
+      - list:
+          elements:
+          - component: backstage
+            namespace: backstage
+
+  # Cert-Manager — clusters with platform.cert-manager: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.cert-manager: "true"
+      - list:
+          elements:
+          - component: cert-manager
+            namespace: cert-manager
+
+  # Crossplane — clusters with platform.crossplane: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.crossplane: "true"
+      - list:
+          elements:
+          - component: crossplane
+            namespace: crossplane-system
+
+  # Kratix — clusters with platform.kratix: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.kratix: "true"
+      - list:
+          elements:
+          - component: kratix
+            namespace: kratix-platform-system
+
+  # External Secrets Operator — clusters with platform.external-secrets: "true"
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.external-secrets: "true"
+      - list:
+          elements:
+          - component: external-secrets
+            namespace: external-secrets
+
+  # notify-watcher — clusters with platform.notify-watcher: "true". Persistent
+  # Deployment that watches X* composite resources for Ready transitions and posts
+  # to Slack; deliberately its own component, not part of Crossplane's config tree
+  # (it just happens to watch Crossplane-composed resources).
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.notify-watcher: "true"
+      - list:
+          elements:
+          - component: notify-watcher
+            namespace: kratix-workloads
+
+  # REST API (Phase 5) — clusters with platform.rest-api: "true". No public Helm
+  # chart (bespoke Go service) so everything — Deployment, Service, Ingress,
+  # RBAC, ExternalSecrets — lives in this one "configs" tree; no matching
+  # "controllers" AppSet entry is needed, unlike Backstage/Kratix/Crossplane.
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.rest-api: "true"
+      - list:
+          elements:
+          - component: rest-api
+            namespace: rest-api
+
+  template:
+    metadata:
+      name: '{{.component}}-configs'
+      namespace: argocd
+    spec:
+      project: default
+      sources:
+      - repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
+        targetRevision: feature/setup_infra
+        path: 'tenants/platform/{{.component}}/overlays/{{index .metadata.labels "cluster-type"}}'
+      destination:
+        name: '{{.name}}'
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-configs
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          platform.argocd: "true"
+  template:
+    metadata:
+      name: 'argocd-configs'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
+        targetRevision: feature/setup_infra
+        path: 'tenants/platform/argocd/overlays/{{index .metadata.labels "cluster-type"}}/{{index .metadata.labels "cluster-role"}}'
+      destination:
+        name: '{{.name}}'
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

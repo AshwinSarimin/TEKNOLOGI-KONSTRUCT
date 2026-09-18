@@ -1,0 +1,3 @@
+# State store configuration - using Git for GitOps
+stateStores: []
+additionalResources: []  

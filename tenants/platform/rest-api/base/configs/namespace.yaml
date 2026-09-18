@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rest-api
+  labels:
+    # Fully enforced — no volume/permission uncertainty here (stateless, only
+    # a projected serviceaccount token, which any UID can read).
+    pod-security.kubernetes.io/enforce: restricted

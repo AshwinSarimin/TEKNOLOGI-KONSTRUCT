@@ -1,0 +1,107 @@
+# RBAC/network hardening — default-deny ingress+egress in the backstage
+# namespace, then explicit allows for exactly what the pod needs:
+#   ingress: Traefik (the ingress controller) on the backend port
+#   egress:  DNS, the k8s API server (kratix:apply, Kubernetes plugin,
+#            permission policy), and the internet (GitHub, Entra ID/Microsoft
+#            Graph, Azure Key Vault via ESO's sidecar-less pull model)
+#
+# Requires a NetworkPolicy-enforcing CNI. k3s enables its embedded kube-router
+# policy controller by default (on top of Flannel) — verify with:
+#   kubectl get pods -n kube-system | grep -i coredns  (confirm labels below)
+#   kubectl get networkpolicy -n backstage
+# On AKS this maps directly to Azure CNI + Calico/Azure NPM, no changes needed.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: backstage
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: backstage
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kube-apiserver
+  namespace: backstage
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  # k3s default Service CIDR is 10.43.0.0/16; kubernetes.default.svc is always
+  # the first address in it. Confirm with:
+  #   kubectl get svc kubernetes -n default -o jsonpath='{.spec.clusterIP}'
+  - to:
+    - ipBlock:
+        cidr: 10.43.0.1/32
+    ports:
+    - port: 443
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internet-egress
+  namespace: backstage
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  # GitHub API/App, Microsoft Entra ID + Graph, Azure Key Vault (ESO reads on
+  # the pod's behalf via ClusterSecretStore, but the ExternalSecret controller
+  # itself lives in external-secrets — this rule covers Backstage's own direct
+  # calls: GitHub integration, auth providers). NetworkPolicy can't allow-list
+  # by domain, only by IP/CIDR — an egress firewall would be the next step for
+  # real domain-scoped restriction.
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - port: 443
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-traefik
+  namespace: backstage
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: traefik
+    ports:
+    - port: 7007
+      protocol: TCP

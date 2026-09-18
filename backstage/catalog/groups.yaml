@@ -1,0 +1,166 @@
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: platform-engineering
+  namespace: default
+  description: TEKNOLOGI Platform Engineering — provides self-service infrastructure to all teams
+spec:
+  type: department
+  profile:
+    displayName: Platform Engineering
+    email: platform@teknologi.nl
+  children:
+    - fundamentals
+    - features
+    - re
+    - sat
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: fundamentals
+  namespace: default
+  description: Core platform tooling, developer experience, GitOps infrastructure, and Kratix orchestration
+  annotations:
+    backstage.io/kubernetes-id: fundamentals
+spec:
+  type: team
+  profile:
+    displayName: Fundamentals
+    email: fundamentals@teknologi.nl
+  parent: platform-engineering
+  children: []
+  members:
+    - ashwin-sarimin
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: features
+  namespace: default
+  description: Kafka and Confluent capabilities for stream-aligned teams
+  annotations:
+    backstage.io/kubernetes-id: features
+spec:
+  type: team
+  profile:
+    displayName: Features
+    email: features@teknologi.nl
+  parent: platform-engineering
+  children: []
+  members:
+    - alex-de-vries
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: re
+  namespace: default
+  description: Reliability Engineering — observability and shared platform services for SATs
+  annotations:
+    backstage.io/kubernetes-id: re
+spec:
+  type: team
+  profile:
+    displayName: RE
+    email: re@teknologi.nl
+  parent: platform-engineering
+  children: []
+  members:
+    - sara-bergman
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: sat
+  namespace: default
+  # Fixes the EntityRelationWarning seen on onboarded-team pages (2026-07-27):
+  # team-onboarding's businessUnit enum ([fundamentals, sat, features, re]) sets
+  # spec.parent to the literal value "sat" for every onboarded stream-aligned
+  # team, but no group:default/sat existed — only the specific sat-ecommerce
+  # team did. "sat" is the parent business unit; multiple specific SAT teams
+  # (sat-ecommerce and any future ones) roll up into it as children.
+  description: Stream-Aligned Teams — business-unit parent for teams onboarded with businessUnit=sat
+spec:
+  type: business-unit
+  profile:
+    displayName: SAT
+    email: sat@teknologi.nl
+  parent: platform-engineering
+  children:
+    - sat-ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: sat-ecommerce
+  namespace: default
+  description: Stream-aligned team — eCommerce, consumer of platform capabilities
+  annotations:
+    backstage.io/kubernetes-id: sat-ecommerce
+spec:
+  type: team
+  profile:
+    displayName: SAT eCommerce
+    email: sat-ecommerce@teknologi.nl
+  parent: sat
+  children: []
+  members:
+    - kai-lindqvist
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: ashwin-sarimin
+  namespace: default
+  annotations:
+    # GitHub account node ID (not username) — matched by the
+    # userIdMatchingUserEntityAnnotation sign-in resolver.
+    github.com/user-id: MDQ6VXNlcjMwMjI1NTA3
+    # Entra ID (Microsoft) email — matched by emailMatchingUserEntityAnnotation.
+    microsoft.com/email: ashwin.sarimin@teknologi.nl
+    # Guest auth is removed (RBAC hardening) — the other three demo users
+    # (alex-de-vries, sara-bergman, kai-lindqvist) are fictional and have no
+    # real account with either provider, so they cannot sign in at all now.
+spec:
+  profile:
+    displayName: Ashwin Sarimin
+    email: ashwin.sarimin@teknologi.nl
+  memberOf:
+    - fundamentals
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: alex-de-vries
+  namespace: default
+spec:
+  profile:
+    displayName: Alex de Vries
+    email: alex.devries@teknologi.nl
+  memberOf:
+    - features
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: sara-bergman
+  namespace: default
+spec:
+  profile:
+    displayName: Sara Bergman
+    email: sara.bergman@teknologi.nl
+  memberOf:
+    - re
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: kai-lindqvist
+  namespace: default
+spec:
+  profile:
+    displayName: Kai Lindqvist
+    email: kai.lindqvist@teknologi.nl
+  memberOf:
+    - sat-ecommerce

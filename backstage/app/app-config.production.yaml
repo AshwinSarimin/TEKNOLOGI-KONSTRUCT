@@ -1,0 +1,28 @@
+# Production overrides — loaded by the Docker image CMD alongside app-config.yaml.
+# Secrets are injected as environment variables by Kubernetes (from Secrets, not ConfigMaps).
+
+app:
+  # Overridden at runtime by APP_CONFIG_app__baseUrl env var via inject-config.sh (frontend image)
+  baseUrl: http://localhost:7007
+
+backend:
+  # Overridden at runtime by APP_CONFIG_backend__baseUrl env var if needed
+  baseUrl: http://localhost:7007
+  listen: ':7007'
+  cors:
+    origin: http://localhost:7007
+
+  database:
+    client: pg
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+
+auth:
+  environment: development
+  providers:
+    # dangerouslyAllowOutsideDevelopment required because NODE_ENV=production in the Docker image
+    guest:
+      dangerouslyAllowOutsideDevelopment: true

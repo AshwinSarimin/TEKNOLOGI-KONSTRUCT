@@ -1,0 +1,180 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: platform-capabilities-request
+  title: Request Fundamentals Capabilities
+  description: |
+    Request platform resources for your system.
+    Available to platform teams (Fundamentals, RE, Features) only.
+  tags:
+    - platform
+    - capabilities
+spec:
+  owner: group:fundamentals
+  type: service
+
+  parameters:
+
+    # ── Page 1: Select resources ─────────────────────────────────────────────
+    - title: Request Fundamentals Capabilities
+      description: |
+        Select your team, environment, and the resources you need.
+        Resource names will be derived from your system name and environment.
+
+        > ℹ️ Available to **platform teams only** (Fundamentals, RE, Features).
+      required:
+        - platformTeam
+        - environment
+        - systemName
+      properties:
+        platformTeam:
+          title: Platform Team
+          type: string
+          description: The platform team requesting these resources
+          enum:
+            - fundamentals
+            - re
+            - features
+          enumNames:
+            - Fundamentals — Platform
+            - RE — Runtime Engineering
+            - Features — Kafka / Confluent
+          ui:autofocus: true
+        environment:
+          title: Environment
+          type: string
+          description: Target environment for the resources
+          enum:
+            - dev
+            - tst
+            - acc
+            - prd
+          ui:widget: radio
+        systemName:
+          title: System Name
+          type: string
+          description: Short identifier for the system these resources belong to (e.g. `payments`, `kafka-proxy`)
+          pattern: '^[a-z0-9-]+$'
+          ui:help: 'Lowercase, hyphenated. Used to name all resources: {systemName}-{environment}-{type}'
+        requestNamespace:
+          title: Kubernetes Namespace
+          type: boolean
+          description: A dedicated Kubernetes namespace on the workload cluster
+          default: false
+        requestKeyVault:
+          title: Azure KeyVault
+          type: boolean
+          description: A secrets vault for credentials, API keys and certificates
+          default: false
+        requestStorage:
+          title: Azure Storage Account
+          type: boolean
+          description: Blob and file storage in Azure
+          default: false
+
+    # ── Page 2: Configure resources ──────────────────────────────────────────
+    - title: Configure your resources
+      description: |
+        Configure each resource you selected. Only the resources you selected
+        on the previous page are shown here.
+      properties:
+
+        # ── Namespace ─────────────────────────────────────────────────────────
+        namespaceVisibility:
+          title: Namespace — network visibility
+          type: string
+          description: |
+            Resource name: `${{ parameters.systemName }}-${{ parameters.environment }}-ns`
+          enum:
+            - private
+            - public
+          enumNames:
+            - Private (cluster-internal only)
+            - Public (externally routable via Cloudflare)
+          ui:if: 'parameters.requestNamespace'
+
+        # ── KeyVault ──────────────────────────────────────────────────────────
+        keyVaultVisibility:
+          title: KeyVault — network access
+          type: string
+          description: |
+            Resource name: `${{ parameters.systemName }}-${{ parameters.environment }}-kv`
+          enum:
+            - private
+            - public
+          enumNames:
+            - Private endpoint only
+            - Public (firewall-restricted)
+          ui:if: 'parameters.requestKeyVault'
+
+        # ── Storage Account ───────────────────────────────────────────────────
+        storageVisibility:
+          title: Storage Account — network access
+          type: string
+          description: |
+            Resource name: `${{ parameters.systemName }}${{ parameters.environment }}sa`
+          enum:
+            - private
+            - public
+          enumNames:
+            - Private endpoint only
+            - Public (firewall-restricted)
+          ui:if: 'parameters.requestStorage'
+        storageRegion:
+          title: Storage Account — region
+          type: string
+          description: Azure region for the Storage Account
+          default: westeurope
+          enum:
+            - westeurope
+            - northeurope
+          enumNames:
+            - West Europe
+            - North Europe
+          ui:if: 'parameters.requestStorage'
+
+    # ── Page 3: Review ───────────────────────────────────────────────────────
+    - title: Review your request
+      description: |
+        Review your resource request below, then click **Create** to submit
+        to the platform.
+
+        **Team**: ${{ parameters.platformTeam }}
+        **Environment**: ${{ parameters.environment }}
+        **System**: `${{ parameters.systemName }}`
+
+        **Resources selected:**
+        - Namespace: ${{ parameters.requestNamespace }}
+        - KeyVault: ${{ parameters.requestKeyVault }}
+        - Storage Account: ${{ parameters.requestStorage }}
+
+        **What happens after you click Create:**
+
+        *Automatic (Kratix)*
+        - Kratix picks up the request and schedules the pipelines
+        - Crossplane provisions the Azure resources
+
+        *You will receive*
+        - ✅ Slack: "Request accepted" — immediately after submission
+        - ✅ Slack: "Resource is live" — once each resource is provisioned
+      properties: {}
+
+    # ── Page 4: Summary ──────────────────────────────────────────────────────
+    - title: Summary
+      description: |
+        ## Resources submitted
+
+        Here is the full configuration for the resources requested for
+        **${{ parameters.platformTeam }}** / **${{ parameters.systemName }}** / **${{ parameters.environment }}**.
+
+        | Resource | Name | Configuration |
+        |----------|------|---------------|
+        | Kubernetes Namespace | `${{ parameters.systemName }}-${{ parameters.environment }}-ns` | ${{ parameters.namespaceVisibility }} |
+        | Azure KeyVault | `${{ parameters.systemName }}-${{ parameters.environment }}-kv` | ${{ parameters.keyVaultVisibility }} |
+        | Azure Storage Account | `${{ parameters.systemName }}${{ parameters.environment }}sa` | ${{ parameters.storageVisibility }}, ${{ parameters.storageRegion }} |
+
+        Watch `#platform-notifications` for live status updates from Kratix.
+      properties: {}
+
+  # Phase A — form validates and previews only. Actions wired in Phase B.
+  steps: []

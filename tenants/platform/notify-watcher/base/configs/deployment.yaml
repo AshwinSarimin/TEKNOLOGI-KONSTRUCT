@@ -1,0 +1,45 @@
+# Persistent replacement for the old per-resource PostSync-hook Job: watches
+# XKeyVault/XNamespace/XStorageAccount/XResourceGroup for Ready transitions
+# directly via the Kubernetes API and posts "resource live" to Slack. See
+# promises/shared/notify/main.go's runWatch for why the hook-based approach
+# was replaced (PostSync hooks aren't part of ArgoCD's sync-status comparison,
+# so a pipeline rerun with unchanged output silently never re-triggered one).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notify-watcher
+  namespace: kratix-workloads
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notify-watcher
+  template:
+    metadata:
+      labels:
+        app: notify-watcher
+    spec:
+      serviceAccountName: notify-watcher
+      imagePullSecrets:
+      - name: acr-credentials
+      containers:
+      - name: notify-watcher
+        image: teknologieur1acr.azurecr.io/kratix-notify:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          seccompProfile:
+            type: RuntimeDefault
+        env:
+        - name: NOTIFY_STAGE
+          value: "watch"
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: slack-webhook
+              key: url
+              optional: true

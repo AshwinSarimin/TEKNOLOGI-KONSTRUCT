@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: storage-account-requester
+rules:
+- apiGroups: ["marketplace.kratix.io"]
+  resources: ["storageaccountrequests"]
+  verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+---
+# All Promise requests are submitted to the kratix-workloads namespace.
+# TeamOnboarding Promise creates team namespaces on the workload cluster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: storage-account-requester
+  namespace: kratix-workloads
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: storage-account-requester
+subjects:
+- kind: Group
+  apiGroup: rbac.authorization.k8s.io
+  name: system:authenticated

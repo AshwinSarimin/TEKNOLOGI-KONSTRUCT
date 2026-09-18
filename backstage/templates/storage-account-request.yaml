@@ -1,0 +1,75 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: storage-account-request
+  title: Azure Storage Account
+  description: |
+    Request an Azure Storage Account (Crossplane-provisioned) in your team's
+    resource group. Available to platform teams only.
+  tags:
+    - platform
+    - kratix
+    # Gated by the platform permission policy — only Fundamentals members
+    # can execute this template (see backend/src/permissionPolicy.ts)
+    - platform-only
+  # The label hides the entity from catalog/Create lists for non-members;
+  # the tag above additionally blocks scaffolder parameter/step access.
+  labels:
+    teknologi.io/access: platform-only
+spec:
+  owner: group:fundamentals
+  type: resource
+
+  parameters:
+    - title: Storage Account details
+      description: |
+        The storage account is named `tek{appName}{environment}sa` (Azure rules:
+        lowercase alphanumeric, max 24 chars) inside your team's resource group
+        `teknologi-eur1-{environment}-{appName}-rg` (created during team onboarding).
+      required:
+        - appName
+        - environment
+      properties:
+        appName:
+          title: Application Name
+          type: string
+          description: Your onboarded team/application name
+          pattern: '^[a-z][a-z0-9-]*$'
+          maxLength: 20
+        environment:
+          title: Environment
+          type: string
+          default: dev
+          enum: [dev, tst, acc, prd]
+        location:
+          title: Azure Region
+          type: string
+          default: westeurope
+          enum: [westeurope, northeurope]
+
+  steps:
+    - id: request-storage-account
+      name: Submit storage account request
+      action: kratix:apply
+      input:
+        manifest:
+          apiVersion: marketplace.kratix.io/v1alpha1
+          kind: StorageAccountRequest
+          metadata:
+            name: ${{ parameters.appName }}-${{ parameters.environment }}-sa
+            namespace: kratix-workloads
+            labels:
+              backstage.io/kubernetes-id: ${{ parameters.appName }}
+          spec:
+            appName: ${{ parameters.appName }}
+            environment: ${{ parameters.environment }}
+            location: ${{ parameters.location }}
+            resourceGroupName: teknologi-eur1-${{ parameters.environment }}-${{ parameters.appName }}-rg
+
+  output:
+    text:
+      - title: Request submitted
+        content: |
+          Storage account for `${{ parameters.appName }}-${{ parameters.environment }}` is being
+          provisioned in `teknologi-eur1-${{ parameters.environment }}-${{ parameters.appName }}-rg`.
+          You will receive a Slack notification when it is live.

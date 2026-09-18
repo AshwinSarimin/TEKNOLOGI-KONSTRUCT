@@ -1,0 +1,27 @@
+# Shares the same "teknologi-platform-authentication" App Registration and Key
+# Vault secrets as ArgoCD's own Entra ID sign-in (tenants/platform/argocd/base/configs/entra-id.yaml)
+# — one App Registration, multiple redirect URIs registered against it (see
+# README.md's "teknologi-platform-authentication" bootstrap section). Tenant ID
+# is not a secret (same reasoning as Crossplane's Azure credentials elsewhere in
+# this project) — ArgoCD hardcodes it as a literal in its own oidc.config, and
+# helm-values.yaml does the same here rather than needing a Key Vault secret
+# that README never actually creates.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: entra-id
+  namespace: backstage
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: platform-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: entra-id
+  data:
+  - secretKey: clientId
+    remoteRef:
+      key: platform-authentication-client-id
+  - secretKey: clientSecret
+    remoteRef:
+      key: platform-authentication-client-secret

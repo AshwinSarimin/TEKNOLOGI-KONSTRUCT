@@ -1,0 +1,77 @@
+name: Build and push Backstage to ACR
+
+on:
+  push:
+    branches:
+      - main
+      - feature/setup_infra
+    paths:
+      - 'backstage/app/**'
+      - '.github/workflows/build-backstage.yaml'
+
+env:
+  REGISTRY: teknologieur1acr.azurecr.io
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build and Push Backstage Image
+    environment: prd
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable Corepack (yarn 4)
+        run: corepack enable
+
+      - name: Install dependencies
+        working-directory: backstage/app
+        run: yarn install --immutable
+
+      - name: Type check
+        working-directory: backstage/app
+        run: yarn tsc
+
+      - name: Build frontend
+        working-directory: backstage/app
+        run: yarn workspace app build
+
+      - name: Build backend bundle
+        working-directory: backstage/app
+        run: yarn build:backend
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.REGISTRY }}
+
+      - name: Build and Push Docker Image
+        working-directory: backstage/app
+        run: |
+          docker build \
+            -f packages/backend/Dockerfile \
+            -t ${{ env.REGISTRY }}/backstage:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/backstage:latest \
+            .
+          docker push ${{ env.REGISTRY }}/backstage:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/backstage:latest
+
+      - name: Verify image in ACR
+        run: |
+          az acr repository show-tags \
+            --name teknologieur1acr \
+            --repository backstage \
+            --output table

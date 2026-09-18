@@ -1,0 +1,16 @@
+apiVersion: marketplace.kratix.io/v1alpha1
+kind: TeamOnboardingRequest
+metadata:
+  name: app-b-dev-onboarding
+  namespace: kratix-workloads
+spec:
+  appName: app-b
+  displayName: "App B Team"
+  businessUnit: sat
+  description: "Example team for testing the onboarding Promise"
+  environment: dev
+  location: westeurope
+  resources:
+    namespace: true
+    keyvault: false
+    storageAccount: false

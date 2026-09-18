@@ -1,0 +1,40 @@
+# Read-only access for the Backstage Kubernetes plugin.
+# The Backstage pod runs as the default ServiceAccount in the backstage namespace;
+# the plugin fetches workload objects and registered custom resources by the
+# backstage.io/kubernetes-id label across namespaces.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backstage-kubernetes-viewer
+rules:
+- apiGroups: [""]
+  resources: [pods, services, configmaps, limitranges, resourcequotas]
+  verbs: [get, list, watch]
+- apiGroups: [apps]
+  resources: [deployments, replicasets, statefulsets, daemonsets]
+  verbs: [get, list, watch]
+- apiGroups: [batch]
+  resources: [jobs, cronjobs]
+  verbs: [get, list, watch]
+- apiGroups: [autoscaling]
+  resources: [horizontalpodautoscalers]
+  verbs: [get, list, watch]
+- apiGroups: [networking.k8s.io]
+  resources: [ingresses]
+  verbs: [get, list, watch]
+- apiGroups: [marketplace.kratix.io]
+  resources: [teamonboardingrequests]
+  verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backstage-kubernetes-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backstage-kubernetes-viewer
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: backstage

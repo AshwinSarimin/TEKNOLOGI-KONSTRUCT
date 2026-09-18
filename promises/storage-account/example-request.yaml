@@ -1,0 +1,11 @@
+# Test with: kubectl apply -f example-request.yaml --context k3d-k3d-teknologi-hub-cluster
+apiVersion: marketplace.kratix.io/v1alpha1
+kind: StorageAccountRequest
+metadata:
+  name: app-a-dev-sa
+  namespace: kratix-workloads
+spec:
+  appName: app-a
+  environment: dev
+  location: westeurope
+  resourceGroupName: teknologi-eur1-prd-platform-rg

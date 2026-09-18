@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kratix-promises
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+  - matrix:
+      generators:
+      - clusters:
+          selector:
+            matchLabels:
+              platform.kratix: "true"
+      - list:
+          elements:
+          - promise: namespace
+          - promise: keyvault
+          - promise: storage-account
+          - promise: storage-account-terraform
+          - promise: team-onboarding
+
+  template:
+    metadata:
+      name: 'promise-{{.promise}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
+        targetRevision: feature/setup_infra
+        path: 'promises/{{.promise}}'
+      destination:
+        name: '{{.name}}'
+        namespace: kratix-platform-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true

@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-tls
+  namespace: argocd
+spec:
+  secretName: argocd-tls
+  dnsNames:
+    - argocd.workload.teknologik8s.nl
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
