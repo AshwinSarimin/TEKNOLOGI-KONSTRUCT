@@ -19,7 +19,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
-        targetRevision: feature/setup_infra
+        targetRevision: main
         path: 'tenants/platform/argocd/overlays/{{index .metadata.labels "cluster-type"}}/{{index .metadata.labels "cluster-role"}}'
       destination:
         name: '{{.name}}'

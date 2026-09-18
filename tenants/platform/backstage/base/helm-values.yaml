@@ -81,29 +81,29 @@ backstage:
       locations:
         # Org structure: teams and users
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/catalog/groups.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/catalog/groups.yaml
         # Platform topology: domains and systems
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/catalog/systems.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/catalog/systems.yaml
         # Platform components: services and promises
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/catalog/components.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/catalog/components.yaml
         # Onboarded teams (SSoT rendered by the team-onboarding Promise) — discovered
         # by glob (plugin-catalog-backend-module-github) instead of one URL per team
         - type: github-discovery
           target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE/blob/main/model/organization/*/teams/*.yaml
         # Software Templates
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/templates/onboarding-wizard.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/onboarding-wizard.yaml
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/templates/capabilities-request.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/capabilities-request.yaml
         # Flow B: individual Promise templates (keyvault/storage gated by permission policy)
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/templates/namespace-request.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/namespace-request.yaml
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/templates/keyvault-request.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/keyvault-request.yaml
         - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/feature/setup_infra/backstage/templates/storage-account-request.yaml
+          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/storage-account-request.yaml
     techdocs:
       builder: local
       generator:
