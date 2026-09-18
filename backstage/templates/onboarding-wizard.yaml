@@ -10,7 +10,7 @@ metadata:
     - platform
     - onboarding
 spec:
-  owner: group:fundamentals
+  owner: group:platform-core
   type: onboarding
 
   parameters:
@@ -45,14 +45,14 @@ spec:
         teamName:
           title: Team Name
           type: string
-          description: Unique team identifier used across all resources (e.g. `sat-payments`, `features-kafka`)
+          description: Unique team identifier used across all resources (e.g. `commerce-payments`, `product-kafka`)
           pattern: '^[a-z0-9-]+$'
           ui:autofocus: true
           ui:help: 'Lowercase, hyphenated. This becomes your team identifier.'
         displayName:
           title: Display Name
           type: string
-          description: Human-readable name shown in the portal (e.g. "SAT Payments")
+          description: Human-readable name shown in the portal (e.g. "Commerce Payments")
         description:
           title: Description
           type: string
@@ -65,15 +65,15 @@ spec:
           type: string
           description: Which stream does your team belong to?
           enum:
-            - fundamentals
-            - sat
-            - features
-            - re
+            - platform-core
+            - commerce
+            - product
+            - research
           enumNames:
-            - 'Foundation — Platform'
-            - 'SAT — Stream-Aligned Team'
-            - 'Features — Kafka / Confluent'
-            - 'RE — Runtime Engineering'
+            - 'Platform Core — Platform'
+            - 'Commerce — Stream-Aligned Team'
+            - 'Product — Kafka / Confluent'
+            - 'Research — Runtime Engineering'
         productOwner:
           title: Product Owner
           type: string
@@ -135,8 +135,8 @@ spec:
         Select the capabilities your team requires. These options determine
         which resources will be provisioned.
 
-        > ℹ️ KeyVault and Storage Account are available to Features, RE, and
-        > Fundamentals teams only.
+        > ℹ️ KeyVault and Storage Account are available to Product, Research, and
+        > Platform Core teams only.
       properties:
         requestNamespace:
           title: Kubernetes Namespace
@@ -246,7 +246,7 @@ spec:
         | Step | Who |
         |------|-----|
         | Kratix opens **one PR** in `TEKNOLOGI-KONSTRUCT-STATE` — registers the team in the SSoT and requests approval for the resources below | **Automatic** |
-        | A Fundamentals reviewer approves and merges the PR | **Fundamentals team** |
+        | A Platform Core reviewer approves and merges the PR | **Platform Core team** |
         | Kubernetes namespace provisioned on workload cluster (if requested) | **Automatic, after merge** |
         | Azure KeyVault provisioned (if requested) | **Automatic, after merge** |
         | Azure Storage Account provisioned (if requested) | **Automatic, after merge** |

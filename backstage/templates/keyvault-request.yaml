@@ -5,11 +5,11 @@ metadata:
   title: Azure KeyVault
   description: |
     Request an Azure KeyVault in your team's resource group. Available to the
-    Features and RE teams — provisioned directly, no approval required.
+    Product and Research teams — provisioned directly, no approval required.
   tags:
     - platform
     - kratix
-    # Gated by the platform permission policy — only Features and RE members
+    # Gated by the platform permission policy — only Product and Research members
     # can execute this template (see backend/src/permissionPolicy.ts)
     - features-only
   # The label hides the entity from catalog/Create lists for non-members;
@@ -17,7 +17,7 @@ metadata:
   labels:
     teknologi.io/access: features-only
 spec:
-  owner: group:fundamentals
+  owner: group:platform-core
   type: resource
 
   parameters:

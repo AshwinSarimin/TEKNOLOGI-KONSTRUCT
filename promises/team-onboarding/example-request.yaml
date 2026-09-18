@@ -6,7 +6,7 @@ metadata:
 spec:
   appName: app-b
   displayName: "App B Team"
-  businessUnit: sat
+  businessUnit: commerce
   description: "Example team for testing the onboarding Promise"
   environment: dev
   location: westeurope

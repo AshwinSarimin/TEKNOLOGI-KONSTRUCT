@@ -137,9 +137,9 @@ backstage:
     # fallback identity for either) — see backstage/catalog/groups.yaml
     # annotations. Only ashwin-sarimin carries both; the other demo users
     # (alex-de-vries, sara-bergman, kai-lindqvist) cannot sign in at all now —
-    # Flow B's Features-only demo previously relied on guest impersonating
+    # Flow B's Product-only demo previously relied on guest impersonating
     # alex-de-vries; demoing it now means temporarily adding ashwin-sarimin to
-    # group:default/features in the catalog, or narrating the gap live.
+    # group:default/product in the catalog, or narrating the gap live.
     auth:
       environment: development
       providers:

@@ -10,7 +10,7 @@ metadata:
     - platform
     - kratix
 spec:
-  owner: group:fundamentals
+  owner: group:platform-core
   type: resource
 
   parameters:
