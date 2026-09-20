@@ -29,7 +29,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT.git
-        targetRevision: main
+        targetRevision: feature/redeploy_platform
         path: 'promises/{{.promise}}'
       destination:
         name: '{{.name}}'
