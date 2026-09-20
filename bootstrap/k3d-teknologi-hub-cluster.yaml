@@ -12,11 +12,11 @@ metadata:
     platform.cert-manager: "true"
     platform.external-secrets: "true"
     platform.argocd: "true"
-    platform.backstage: "true"
-    platform.kratix: "true"
+    platform.backstage: "false" #true
+    platform.kratix: "false" #true
     platform.crossplane: "false"
     platform.kratix-workloads: "false"
-    platform.rest-api: "true"
+    platform.rest-api: "false" #true
 type: Opaque
 stringData:
   name: k3d-teknologi-hub-cluster

@@ -130,12 +130,15 @@ More information: https://docs.kratix.io/main/reference/statestore/gitstatestore
 **Create client secret for Backstage**
 - https://github.com/settings/apps/TEKNOLOGI-KONSTRUCT
 
+The following data will be stored in the platform configsmap `tenants/platform/kratix/base/configs/workload/platform-config.yaml` and `tenants/platform/backstage/base/configs/platform-config`
+
+- `githubAppId` = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct)
+- `githubAppInstallationId` = [https://github.com/settings/installations](https://github.com/settings/installations) > Select App > Check the URL for the installation id.
+- `githubAppClientId` = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct) as Backstage's own copy only, Kratix pipelines don't need it.
+
 The following secret data will be stored in Key Vault, so the External Secrets Operator can sync it into the cluster. Note the values below, you'll add them to Key Vault in [KeyVault secrets](#keyvault-secrets).
 
-- APP_ID = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct)
-- INSTALLATION_ID = [https://github.com/settings/installations](https://github.com/settings/installations) > Select App > Check the URL for the installation id.
 - PRIVATE_KEY_LOCATION = The location to the private key that is stored locally
-- CLIENT_ID = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct)
 - CLIENT_SECRET
 
 ### Azure resources
@@ -173,47 +176,50 @@ The Key Vault teknologi-eur1-kv will be used to store secrets
 
 The following service principals are necessary for the platform, and the secret data will be stored in Key Vault, so the External Secrets Operator can sync it into the cluster. Note the values below, you'll add them to Key Vault in [KeyVault secrets](#keyvault-secrets):
 
-**teknologi-platform-acr**
+**teknologi-konstruct-acr**
 - Pull from ACR from within the cluster
 
-```bash
-ACR_REGISTRY_ID=$(az acr show --name teknologieur1acr --query id --output tsv)
-
-ACR_SP_PASSWORD=$(az ad sp create-for-rbac \
-  --name teknologi-platform-acr \
-  --scopes $ACR_REGISTRY_ID \
-  --role acrpull \
-  --query password \
-  --output tsv)
-
-ACR_SP_CLIENT_ID=$(az ad sp list --display-name teknologi-platform-acr --query '[].appId' --output tsv)
-
-echo "ACR_SP_CLIENT_ID:  $ACR_SP_CLIENT_ID"
-echo "ACR_SP_PASSWORD: $ACR_SP_PASSWORD"  
-```
-
-**teknologi-platform-cloud**
-
-Consumed by:
+**teknologi-konstruct-cloud**
 - Terraform tfstate in Storage Account: teknologieur1sa
 - External Secrets Operator access to KeyVault
 - Contributor to workload resource group(s) to create the resources with Terraform/Crossplane
 
+**teknologi-konstruct-authentication**
+- Backstage Entra sign-in provider
+- ArgoCD Entra sign-in provider
+
+
 ```bash
-SP_NAME="teknologi-platform-cloud"
+ACRSPNAME="teknologi-konstruct-acr"
+CLOUDSPNAME="teknologi-konstruct-cloud"
+AUTHSPNAME="teknologi-konstruct-authentication"
+ACRNAME="teknologieur1acr"
 SA_RESOURCE_GROUP="teknologi-eur1-prd-k8s-rg"
 KV_RESOURCE_GROUP="teknologi-eur1-prd-management-rg"
 SA_NAME="teknologieur1sa"
 KV_NAME="teknologi-eur1-kv"
 
-# Create SP without role assignment
-SP=$(az ad sp create-for-rbac \
-  --name "$SP_NAME" \
+## teknologi-konstruct-acr
+ACR_REGISTRY_ID=$(az acr show --name "$ACRNAME" --query id --output tsv)
+
+ACR_SP=$(az ad sp create-for-rbac \
+  --name "$ACRSPNAME" \
+  --scopes $ACR_REGISTRY_ID \
+  --role acrpull \
+  --output json)
+
+ACR_SP_CLIENT_ID=$(echo $ACR_SP | jq -r '.appId')
+ACR_SP_PASSWORD=$(echo $ACR_SP | jq -r '.password')
+
+## teknologi-konstruct-cloud
+
+CLOUD_SP=$(az ad sp create-for-rbac \
+  --name "$CLOUDSPNAME" \
   --skip-assignment \
   --output json)
 
-CLOUD_CLIENT_ID=$(echo $SP | jq -r '.appId')
-CLOUD_SP_PASSWORD=$(echo $SP | jq -r '.password')
+CLOUD_SP_CLIENT_ID=$(echo $CLOUD_SP | jq -r '.appId')
+CLOUD_SP_PASSWORD=$(echo $CLOUD_SP | jq -r '.password')
 
 # Role assignment 1: Terraform tfstate backend
 STORAGE_ACCOUNT_ID=$(az storage account show \
@@ -222,7 +228,7 @@ STORAGE_ACCOUNT_ID=$(az storage account show \
   --query id -o tsv)
 
 az role assignment create \
-  --assignee "$CLOUD_CLIENT_ID" \
+  --assignee "$CLOUD_SP_CLIENT_ID" \
   --role "Storage Blob Data Contributor" \
   --scope "$STORAGE_ACCOUNT_ID"
 
@@ -233,40 +239,45 @@ KEY_VAULT_ID=$(az keyvault show \
   --query id -o tsv)
 
 az role assignment create \
-  --assignee "$CLOUD_CLIENT_ID" \
+  --assignee "$CLOUD_SP_CLIENT_ID" \
   --role "Key Vault Secrets User" \
   --scope "$KEY_VAULT_ID"
 
 # Role assignment 3: Contributor on subcription level for Terraform and Crossplane
 az role assignment create \
-  --assignee "$CLOUD_CLIENT_ID" \
+  --assignee "$CLOUD_SP_CLIENT_ID" \
   --role Contributor \
   --scope /subscriptions/e229909d-d13f-44aa-ae26-046922d181eb
 
-echo "CLOUD_CLIENT_ID:  $CLOUD_CLIENT_ID"
-echo "CLOUD_SP_PASSWORD: $CLOUD_SP_PASSWORD"  
-```
+## teknologi-konstruct-authentication
 
-**teknologi-platform-authentication**
-- Backstage Entra sign-in provider
-- ArgoCD Entra sign-in provider
-
-```bash
-APP_ID=$(az ad app create \
-  --display-name "teknologi-platform-authentication" \
+AUTH_SP=$(az ad app create \
+  --display-name "$AUTHSPNAME" \
   --web-redirect-uris "https://backstage.konstruct.teknologik8s.nl/api/auth/microsoft/handler/frame" "https://argocd.konstruct.teknologik8s.nl/auth/callback" "https://argocd.workload.teknologik8s.nl:9443/auth/callback" \
   --sign-in-audience AzureADMyOrg \
-  --query appId -o tsv)
-# If this App Registration already exists (not a fresh create), add the redirect URIs instead of recreating it:
-#   az ad app update --id "$APP_ID" --web-redirect-uris "https://backstage.konstruct.teknologik8s.nl/api/auth/microsoft/handler/frame" "https://argocd.konstruct.teknologik8s.nl/auth/callback" "https://argocd.workload.teknologik8s.nl:9443/auth/callback"
+  --output json)
 
-az ad app permission add --id "$APP_ID" \
+# If this App Registration already exists (not a fresh create), add the redirect URIs instead of recreating it:
+# az ad app update --id "$AUTH_SP_CLIENT_ID" --web-redirect-uris "https://backstage.konstruct.teknologik8s.nl/api/auth/microsoft/handler/frame" "https://argocd.konstruct.teknologik8s.nl/auth/callback" "https://argocd.workload.teknologik8s.nl:9443/auth/callback"
+
+az ad app permission add --id "$AUTH_SP_CLIENT_ID" \
   --api 00000003-0000-0000-c000-000000000000 \
   --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope
 # permission grant needs a Service Principal for the app in this tenant
 # az ad app create only creates the App Registration, not the SP
-az ad sp create --id "$APP_ID"
-az ad app permission grant --id "$APP_ID" --api 00000003-0000-0000-c000-000000000000 --scope User.Read
+az ad sp create --id "$AUTH_SP_CLIENT_ID"
+az ad app permission grant --id "$AUTH_SP_CLIENT_ID" --api 00000003-0000-0000-c000-000000000000 --scope User.Read
+
+AUTH_SP_CLIENT_ID=$(echo $AUTH_SP | jq -r '.appId')
+AUTH_SP_PASSWORD=$(az ad app credential reset --id "$AUTH_SP_CLIENT_ID" --query password -o tsv)
+
+
+echo "ACR_SP_CLIENT_ID:  $ACR_SP_CLIENT_ID"
+echo "ACR_SP_PASSWORD: $ACR_SP_PASSWORD"
+echo "CLOUD_SP_CLIENT_ID:  $CLOUD_SP_CLIENT_ID"
+echo "CLOUD_SP_PASSWORD: $CLOUD_SP_PASSWORD"
+echo "AUTH_SP_CLIENT_ID:  $AUTH_SP_CLIENT_ID"
+echo "AUTH_SP_PASSWORD:  $AUTH_SP_PASSWORD"
 ```
 
 ### Slack integration
@@ -295,17 +306,13 @@ The webhook URL will be stored in Key Vault, so the External Secrets Operator ca
 
 The following secret data must be stored in Key Vault, so the External Secrets Operator can sync it into the cluster.
 
-**Only values that actually grant access live here.** IDs, tenant/subscription IDs, resource group/storage account/container names, and the registry hostname are not secrets (Microsoft's own guidance: only the client *secret* is sensitive) — those are committed directly as plain values in `tenants/platform/kratix/base/configs/workload/platform-config.yaml` and `tenants/platform/backstage/base/configs/platform-config.yaml` instead. See Architecture.md's "Secret Management" section for the full reasoning and the one exception (ArgoCD's OIDC `clientID` still has to come from a Secret, not a ConfigMap, because of how ArgoCD's own `$secretName:key` substitution mechanism works).
-
 ```bash
 KV_NAME="teknologi-eur1-kv"
 
 GITHUB_APP_PRIVATE_KEY_LOCATION="/Users/ashwin/Documents/teknologi-konstruct.2026-08-02.private-key.pem"
 GITHUB_APP_CLIENT_SECRET=""
-
 ACR_SP_CLIENT_ID=""
 ACR_SP_PASSWORD=""
-
 CLOUD_SP_CLIENT_SECRET=""
 
 AUTHENTICATION_SP_CLIENT_ID=""
@@ -317,11 +324,11 @@ SLACK_WEBHOOK=""
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-private-key" --file "$GITHUB_APP_PRIVATE_KEY_LOCATION"
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-client-secret" --value "$GITHUB_APP_CLIENT_SECRET"
 
-# ACR credentials (teknologi-platform-acr SP)
+# ACR credentials (teknologi-konstruct-acr SP)
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-acr-username" --value "$ACR_SP_CLIENT_ID"
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-acr-password" --value "$ACR_SP_PASSWORD"
 
-# Terraform Azure credentials (teknologi-platform-cloud SP)
+# Terraform Azure credentials (teknologi-konstruct-cloud SP)
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-cloud-client-secret" --value "$CLOUD_SP_CLIENT_SECRET"
 
 # Entra authentication login — clientId stays a Key Vault secret (not moved to
@@ -513,7 +520,7 @@ kubectl apply -f bootstrap/k3d-teknologi-workload-cluster.yaml --context "$WORKL
 
 ```bash 
 #Probaly not necessaery anynmore, because the argocd repository secrets are shared for every repo in a cluster..
-kubectl create secret generic teknologi-platform-orchestration-repo \
+kubectl create secret generic teknologi-konstruct-orchestration-repo \
   -n argocd \
   --context k3d-teknologi-workload-cluster \
   --from-literal=type=git \
@@ -522,7 +529,7 @@ kubectl create secret generic teknologi-platform-orchestration-repo \
   --from-literal=githubAppInstallationID=122452739 \
   --from-file=githubAppPrivateKey=/Users/ashwin/Documents/teknologi-platform.2026-04-08.private-key.pem
 
-kubectl label secret teknologi-platform-orchestration-repo -n argocd \
+kubectl label secret teknologi-konstruct-orchestration-repo -n argocd \
   --context k3d-teknologi-workload-cluster \
   argocd.argoproj.io/secret-type=repository
 ```
