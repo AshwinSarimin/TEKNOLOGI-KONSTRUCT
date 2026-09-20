@@ -19,7 +19,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT-STATE.git
-        targetRevision: feature/redeploy_platform
+        targetRevision: main
         path: '{{.name}}'
         directory:
           recurse: true

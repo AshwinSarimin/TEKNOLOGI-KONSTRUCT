@@ -105,7 +105,7 @@ gh secret set TENANT_ID --body "$TENANT_ID" --env "$GH_ENV_NAME" --repo ${GH_USE
 A GitHub App is necessary to connect to a private repo for:
 - ArgoCD
 - Kratix (write to orchestration repo) 
-- Backstage (retrieve templates from private repositories)
+- Backstage (GitHub Signin and retrieve templates from private repositories)
 
 More information: https://docs.kratix.io/main/reference/statestore/gitstatestore#github-app 
 
@@ -130,7 +130,7 @@ More information: https://docs.kratix.io/main/reference/statestore/gitstatestore
 **Create client secret for Backstage**
 - https://github.com/settings/apps/TEKNOLOGI-KONSTRUCT
 
-The following data will be stored in the platform configsmap `tenants/platform/kratix/base/configs/workload/platform-config.yaml` and `tenants/platform/backstage/base/configs/platform-config`
+The following data will be stored in the platform configmaps `tenants/platform/kratix/base/configs/workload/platform-config.yaml` and `tenants/platform/backstage/base/configs/platform-config`
 
 - `githubAppId` = [https://github.com/settings/apps/teknologi-konstruct](https://github.com/settings/apps/teknologi-konstruct)
 - `githubAppInstallationId` = [https://github.com/settings/installations](https://github.com/settings/installations) > Select App > Check the URL for the installation id.
@@ -140,6 +140,14 @@ The following secret data will be stored in Key Vault, so the External Secrets O
 
 - PRIVATE_KEY_LOCATION = The location to the private key that is stored locally
 - CLIENT_SECRET
+
+**GitHub Signin**
+
+The GitHub App needs configurations for Backstage to have GitHub signin:
+- https://github.com/settings/apps 
+- General → Identifying and authorizing users:
+  - Enable "Request user authorization (OAuth) during installation" (this is what turns on "Sign in with GitHub App")
+  - Add the Callback URL field: https://backstage.konstruct.teknologik8s.nl/api/auth/github/handler/frame
 
 ### Azure resources
 
@@ -419,8 +427,7 @@ kubectl wait --for=condition=available deployment/argocd-server \
 > To reach the ArgoCD UI for now without Ingress, use port-forwarding:
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:80 --context "$HUB_CONFIG_NAME"
-kubectl port-forward svc/argocd-server -n argocd 8080:80 --context "$WORKLOAD_CONFIG_NAME"
-# Open http://localhost:8080
+kubectl port-forward svc/argocd-server -n argocd 8081:80 --context "$WORKLOAD_CONFIG_NAME"
 
 # Admin password still works as a fallback even with SSO configured above. ESO needs to sync the argocd-entra-id secret before SSO login actually works, which happens later in the bootstrap.
 HUB_ARGO_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
@@ -515,56 +522,3 @@ kubectl apply -f bootstrap/k3d-teknologi-hub-cluster.yaml --context "$HUB_CONFIG
 # Bootstrap
 kubectl apply -f bootstrap/k3d-teknologi-workload-cluster.yaml --context "$WORKLOAD_CONFIG_NAME"
 ```
-
--------------------------------
-
-```bash 
-#Probaly not necessaery anynmore, because the argocd repository secrets are shared for every repo in a cluster..
-kubectl create secret generic teknologi-konstruct-orchestration-repo \
-  -n argocd \
-  --context k3d-teknologi-workload-cluster \
-  --from-literal=type=git \
-  --from-literal=url=https://github.com/AshwinSarimin/TEKNOLOGI-PLATFORM-ORCHESTRATION.git \
-  --from-literal=githubAppID=3318696 \
-  --from-literal=githubAppInstallationID=122452739 \
-  --from-file=githubAppPrivateKey=/Users/ashwin/Documents/teknologi-platform.2026-04-08.private-key.pem
-
-kubectl label secret teknologi-konstruct-orchestration-repo -n argocd \
-  --context k3d-teknologi-workload-cluster \
-  argocd.argoproj.io/secret-type=repository
-```
-
-#### Bootstrap Backstage
-
-
-The GitHub App needs configurations for Backstage to have GitHub signin
-- https://github.com/settings/apps 
-- General → Identifying and authorizing users:
-  - Enable "Request user authorization (OAuth) during installation" (this is what turns on "Sign in with GitHub App")
-  - Add the Callback URL field: https://backstage.konstruct.teknologik8s.nl/api/auth/github/handler/frame
-
-
-```
-
-### REST API (Phase 5)
-
-Deploys automatically via the `rest-api-configs` ArgoCD Application once `platform-rest-api-key` exists in Key Vault (see [KeyVault secrets](./README.md#keyvault-secrets)) — no separate bootstrap step. Third consumption pattern alongside Backstage and kubectl: a generic `/apply` endpoint that creates any Promise request CRD.
-
-```bash
-API_KEY=$(az keyvault secret show --vault-name teknologi-eur1-kv --name platform-rest-api-key --query value -o tsv)
-
-curl -X POST http://rest-api.localhost:8080/apply \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "kind": "NamespaceRequest",
-    "name": "app-d-dev-ns",
-    "spec": {
-      "namespaceName": "app-d-dev",
-      "environment": "dev",
-      "networkVisibility": "private"
-    }
-  }'
-```
-
-Supported `kind` values: `TeamOnboardingRequest`, `NamespaceRequest`, `KeyVaultRequest`, `StorageAccountRequest`, `StorageAccountTerraformRequest`. Requests always land in `kratix-workloads` on the hub cluster, same as Backstage and kubectl.

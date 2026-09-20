@@ -9,14 +9,14 @@ metadata:
     cluster-name: k3d-teknologi-hub-cluster
     cluster-type: dev
     cluster-role: hub
-    platform.cert-manager: "false" #true
+    platform.cert-manager: "true"
     platform.external-secrets: "true"
-    platform.argocd: "false" #true
-    platform.backstage: "false" #true
-    platform.kratix: "false" #true
+    platform.argocd: "true"
+    platform.backstage: "true"
+    platform.kratix: "true"
     platform.crossplane: "false"
     platform.kratix-workloads: "false"
-    platform.rest-api: "false" #true
+    platform.rest-api: "true"
 type: Opaque
 stringData:
   name: k3d-teknologi-hub-cluster
