@@ -140,6 +140,8 @@ The following secret data will be stored in Key Vault, so the External Secrets O
 
 - PRIVATE_KEY_LOCATION = The location to the private key that is stored locally
 - CLIENT_SECRET
+- GITHUB_APP_ID = necessary for the GitStateStore
+- GITHUB_APP_INSTALLATION_ID = necessary for the GitStateStore
 
 **GitHub Signin**
 
@@ -319,6 +321,8 @@ KV_NAME="teknologi-eur1-kv"
 
 GITHUB_APP_PRIVATE_KEY_LOCATION="/Users/ashwin/Documents/teknologi-konstruct.2026-08-02.private-key.pem"
 GITHUB_APP_CLIENT_SECRET=""
+GITHUB_APP_ID=""
+GITHUB_APP_INSTALLATION_ID=""
 ACR_SP_CLIENT_ID=""
 ACR_SP_PASSWORD=""
 CLOUD_SP_CLIENT_SECRET=""
@@ -331,6 +335,8 @@ SLACK_WEBHOOK=""
 # GitHub App
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-private-key" --file "$GITHUB_APP_PRIVATE_KEY_LOCATION"
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-client-secret" --value "$GITHUB_APP_CLIENT_SECRET"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-id" --value "$GITHUB_APP_ID"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-github-app-installation-id" --value "$GITHUB_APP_INSTALLATION_ID"
 
 # ACR credentials (teknologi-konstruct-acr SP)
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-acr-username" --value "$ACR_SP_CLIENT_ID"
