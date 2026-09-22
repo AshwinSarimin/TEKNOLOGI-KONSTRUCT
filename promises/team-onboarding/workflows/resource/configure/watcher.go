@@ -186,7 +186,8 @@ func writeXROutputs(req Request) error {
 		if err := writeYAML("/kratix/output/xkeyvault.yaml", buildXKeyVault(req, rgName, tenantID)); err != nil {
 			return err
 		}
-		log.Printf("Wrote XKeyVault kv-%s-%s", req.Spec.AppName, req.Spec.Environment)
+		vaultName := computeVaultName(req.Spec.AppName, req.Spec.Environment)
+		log.Printf("Wrote XKeyVault kv-%s-%s (Azure name: %s)", req.Spec.AppName, req.Spec.Environment, vaultName)
 	}
 
 	// XStorageAccount — Azure Storage Account in the team's resource group.
@@ -213,6 +214,18 @@ func computeStorageAccountName(appName, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	clean := func(s string) string { return re.ReplaceAllString(strings.ToLower(s), "") }
 	name := "tek" + clean(appName) + clean(env) + "sa"
+	if len(name) > 24 {
+		name = name[:24]
+	}
+	return name
+}
+
+// computeVaultName mirrors the logic in the standalone keyvault promise.
+// Azure rules: 3-24 chars, alphanumeric only, must start with a letter.
+func computeVaultName(appName, env string) string {
+	re := regexp.MustCompile(`[^a-z0-9]`)
+	clean := func(s string) string { return re.ReplaceAllString(strings.ToLower(s), "") }
+	name := "kv" + clean(appName) + clean(env)
 	if len(name) > 24 {
 		name = name[:24]
 	}
@@ -270,6 +283,7 @@ func buildXKeyVault(req Request, rgName, tenantID string) map[string]interface{}
 			"environment":       req.Spec.Environment,
 			"location":          req.Spec.Location,
 			"resourceGroupName": rgName,
+			"vaultName":         computeVaultName(req.Spec.AppName, req.Spec.Environment),
 		},
 	}
 }

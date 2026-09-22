@@ -92,6 +92,9 @@ spec:
                     default: westeurope
                   resourceGroupName:
                     type: string
+                  vaultName:
+                    type: string
+                    description: "Azure-safe compact Key Vault name (<=24 alphanumeric chars), computed by the pipeline from appName+environment"
               status:
                 type: object
                 properties:
@@ -154,14 +157,13 @@ spec:
                 string:
                   fmt: "kv-%s-%s"
               toFieldPath: metadata.name
-            - type: CombineFromComposite
-              combine:
-                variables:
-                - fromFieldPath: spec.appName
-                - fromFieldPath: spec.environment
-                strategy: string
-                string:
-                  fmt: "kv-%s-%s"
+            # Azure Key Vault names must be <=24 alphanumeric chars — the raw
+            # "kv-{appName}-{env}" combine above can exceed that for normal-length
+            # team names (see Experiments.md, 2026-09-22). The actual Azure name
+            # comes from spec.vaultName, computed and length-truncated by the
+            # pipeline, not from re-combining appName/environment here.
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.vaultName
               toFieldPath: metadata.annotations[crossplane.io/external-name]
             - type: ToCompositeFieldPath
               fromFieldPath: metadata.name
