@@ -54,7 +54,6 @@ SUBSCRIPTION_ID="e229909d-d13f-44aa-ae26-046922d181eb"
 RESOURCE_GROUP_NAME="teknologi-eur1-prd-management-rg"
 LOCATION="westeurope"
 IDENTITY_NAME="teknologi-eur1-prd-github-mi"
-ACR_NAME="teknologieur1acr"
 GH_USERNAME="AshwinSarimin"
 GH_REPO_NAME="TEKNOLOGI-KONSTRUCT"
 GH_ENV_NAME="prd"
@@ -155,22 +154,13 @@ The GitHub App needs configurations for Backstage to have GitHub signin:
 
 #### Terraform storage account
 
-A Terraform storage account will be used to store the tfstate.
+A Terraform storage account will be used to store the tfstate. The existing storage account `teknologieur1sa` will be used for this
 
 ```bash
-RESOURCE_GROUP="teknologi-eur1-prd-k8s-rg"
+RESOURCE_GROUP="teknologi-eur1-prd-management-rg"
 LOCATION="westeurope"
 SA_NAME="teknologieur1sa"
-CONTAINER_NAME="tfstate"
-
-az storage account create \
-  --name "$SA_NAME" \
-  --resource-group "$RESOURCE_GROUP" \
-  --location "$LOCATION" \
-  --sku Standard_LRS \
-  --kind StorageV2 \
-  --min-tls-version TLS1_2 \
-  --allow-blob-public-access false
+CONTAINER_NAME="terraform"
 
 az storage container create \
   --name "$CONTAINER_NAME" \
@@ -180,7 +170,7 @@ az storage container create \
 
 #### Azure KeyVault
 
-The Key Vault teknologi-eur1-kv will be used to store secrets
+The Key Vault `teknologi-eur1-kv` will be used to store secrets
 
 ### Service Principals
 
@@ -204,8 +194,7 @@ ACRSPNAME="teknologi-konstruct-acr"
 CLOUDSPNAME="teknologi-konstruct-cloud"
 AUTHSPNAME="teknologi-konstruct-authentication"
 ACRNAME="teknologieur1acr"
-SA_RESOURCE_GROUP="teknologi-eur1-prd-k8s-rg"
-KV_RESOURCE_GROUP="teknologi-eur1-prd-management-rg"
+RESOURCE_GROUP="teknologi-eur1-prd-management-rg"
 SA_NAME="teknologieur1sa"
 KV_NAME="teknologi-eur1-kv"
 
@@ -234,7 +223,7 @@ CLOUD_SP_PASSWORD=$(echo $CLOUD_SP | jq -r '.password')
 # Role assignment 1: Terraform tfstate backend
 STORAGE_ACCOUNT_ID=$(az storage account show \
   --name "$SA_NAME" \
-  --resource-group "$SA_RESOURCE_GROUP" \
+  --resource-group "$RESOURCE_GROUP" \
   --query id -o tsv)
 
 az role assignment create \
@@ -245,7 +234,7 @@ az role assignment create \
 # Role assignment 2: ESO reads secrets from Key Vault
 KEY_VAULT_ID=$(az keyvault show \
   --name "$KV_NAME" \
-  --resource-group "$KV_RESOURCE_GROUP" \
+  --resource-group "$RESOURCE_GROUP" \
   --query id -o tsv)
 
 az role assignment create \
