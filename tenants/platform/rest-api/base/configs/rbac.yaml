@@ -1,8 +1,5 @@
-# rest-api's own ServiceAccount, scoped narrowly to create/get/list the Promise
-# request kinds — unlike Backstage's team-onboarding-requester (bound to
-# system:authenticated, since Backstage is the trusted broker for many human
-# users), rest-api authenticates its own callers at the HTTP layer (shared API
-# key), so its k8s identity should be exactly this one service, nothing broader.
+# The REST API authenticates each caller and enforces request ownership before
+# a version-checked update. Only create/get/update are needed by its endpoint.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -21,7 +18,7 @@ rules:
   - keyvaultrequests
   - storageaccountrequests
   - storageaccountterraformrequests
-  verbs: ["create", "get", "list", "watch", "update", "patch"]
+  verbs: ["create", "get", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

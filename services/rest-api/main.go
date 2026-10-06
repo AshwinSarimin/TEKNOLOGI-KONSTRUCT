@@ -13,7 +13,10 @@ import (
 // endpoint, not one endpoint per Promise, so new Promises need no API changes.
 func main() {
 	port := getEnv("PORT", "8080")
-	apiKey := requireEnv("API_KEY")
+	apiKeys, err := parseAPIKeys(requireEnv("API_KEYS"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	client, err := newDynamicClient()
 	if err != nil {
@@ -26,7 +29,7 @@ func main() {
 	// ever routes. Method checks happen inside each handler instead.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", requireMethod(http.MethodGet, handleHealthz))
-	mux.HandleFunc("/apply", requireMethod(http.MethodPost, withAuth(apiKey, handleApply(client))))
+	mux.HandleFunc("/apply", requireMethod(http.MethodPost, withAuth(apiKeys, handleApply(client))))
 
 	log.Printf("rest-api listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
@@ -62,18 +65,4 @@ func requireMethod(method string, next http.HandlerFunc) http.HandlerFunc {
 func handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
-}
-
-// withAuth checks a single shared bearer token — matches this platform's
-// current local-demo security posture (see Experiments.md). Not production-grade;
-// production would need per-caller tokens or OIDC, not a shared secret.
-func withAuth(apiKey string, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		got := r.Header.Get("Authorization")
-		if got != "Bearer "+apiKey {
-			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-			return
-		}
-		next(w, r)
-	}
 }

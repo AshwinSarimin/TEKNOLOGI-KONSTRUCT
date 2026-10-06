@@ -344,8 +344,83 @@ az keyvault secret set --vault-name teknologi-eur1-kv --name platform-authentica
 # Slack webhook
 az keyvault secret set --vault-name "$KV_NAME" --name "platform-slack-webhook-url" --value "$SLACK_WEBHOOK"
 
-# REST API shared bearer token
-az keyvault secret set --vault-name "$KV_NAME" --name "platform-rest-api-key" --value "$(openssl rand -hex 32)"
+# REST API: one distinct token per caller, keyed by a stable caller ID.
+# Keep IDs stable when rotating tokens; do not share a token between callers.
+REST_API_KEYS_FILE="$(mktemp)"
+jq -n --arg token "$(openssl rand -hex 32)" \
+  '{"platform-automation": $token}' > "$REST_API_KEYS_FILE"
+az keyvault secret set --vault-name "$KV_NAME" --name "platform-rest-api-keys" \
+  --file "$REST_API_KEYS_FILE" --output none
+rm "$REST_API_KEYS_FILE"
+```
+
+### REST API caller credentials and request ownership
+
+For an existing installation, create `platform-rest-api-keys` using the commands
+above **before** syncing the updated REST API manifests. Supply a JSON object
+containing every caller that needs access, for example two independently generated
+tokens under `team-a-ci` and `team-b-ci`. Caller IDs must be lowercase letters,
+digits or hyphens, start and end with a letter or digit, and be at most 63
+characters. Tokens must be distinct and contain 32–256 non-space ASCII characters;
+use `openssl rand -hex 32`. Store this file securely outside the repository.
+Writing the Key Vault secret replaces the entire caller map. The legacy shared
+`platform-rest-api-key` is no longer accepted by the updated service.
+
+After committing and pushing the code, wait for both image builds to succeed and
+for ArgoCD to sync the manifests. Refresh ESO and restart the REST API so it loads
+the new credentials and image (also required after token rotation):
+
+Plan a maintenance window for this migration: ArgoCD can sync the new `API_KEYS`
+environment and reduced RBAC before CI finishes building the new image. The old
+image may fail startup until the build succeeds and the deployment is restarted.
+
+```bash
+kubectl --context k3d-k3d-teknologi-hub-cluster -n rest-api annotate externalsecret rest-api-key \
+  force-sync="$(date +%s)" --overwrite
+kubectl --context k3d-k3d-teknologi-hub-cluster -n rest-api wait \
+  --for=jsonpath='{.data.apiKeys}' secret/rest-api-key --timeout=120s
+kubectl --context k3d-k3d-teknologi-hub-cluster -n rest-api rollout restart deployment/rest-api
+kubectl --context k3d-k3d-teknologi-hub-cluster -n rest-api rollout status deployment/rest-api
+```
+
+For a rotation, wait until `ExternalSecret.status.refreshTime` advances after the
+refresh annotation before restarting; an existing `apiKeys` entry alone does not
+prove that the new value has arrived. Rebuild and roll out Backstage after its image
+build succeeds as well. This is required before its submissions acquire owners.
+
+Submit with the token for the intended caller:
+
+```bash
+REST_API_TOKEN="$(az keyvault secret show --vault-name "$KV_NAME" \
+  --name platform-rest-api-keys --query value -o tsv | jq -r '.["platform-automation"]')"
+curl --fail-with-body http://rest-api.localhost:8080/apply \
+  -H "Authorization: Bearer $REST_API_TOKEN" -H 'Content-Type: application/json' \
+  --data '{"kind":"NamespaceRequest","name":"example-dev-ns","spec":{"appName":"example","environment":"dev","networkVisibility":"public"}}'
+unset REST_API_TOKEN
+```
+
+The endpoint returns `201` for a new request and `200` for the same owner's retry
+or update. A different owner or an existing unowned request returns `403`; a
+concurrent change returns `409` and can be retried. Backstage uses the authenticated
+user's entity reference as owner. Ownership is separate for REST API callers and
+Backstage users, and cannot be supplied in a request body or template manifest.
+
+Existing requests require an administrator to review and assign an owner before
+either broker can update them. Inspect the request first, then use its current
+resourceVersion to avoid overwriting a concurrent change. For example:
+
+```bash
+REQUEST_KIND="keyvaultrequests"
+REQUEST_NAME="replace-with-reviewed-request"
+REQUEST_OWNER="rest-api:platform-automation" # or backstage:user:default/<actual-user>
+kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
+  get "$REQUEST_KIND" "$REQUEST_NAME" -o yaml
+# Copy resourceVersion from the object you reviewed above.
+REQUEST_RESOURCE_VERSION="replace-with-reviewed-resource-version"
+kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
+  annotate "$REQUEST_KIND" "$REQUEST_NAME" \
+  teknologi.io/request-owner="$REQUEST_OWNER" \
+  --resource-version="$REQUEST_RESOURCE_VERSION"
 ```
 
 ## Clusters Bootstrap
@@ -392,12 +467,18 @@ helm repo update
 
 # Install ArgoCD on hub cluster
 helm upgrade --install argocd argo/argo-cd \
+  --version 10.9.2 \
   -n argocd \
   --create-namespace \
   --set 'server.extraArgs[0]=--insecure' \
   -f tenants/platform/argocd/base/helm-values.yaml \
   -f tenants/platform/argocd/overlays/dev/hub/helm-values.yaml \
   --kube-context "$HUB_CONFIG_NAME"
+
+# Existing hub installation: apply changed ArgoCD Helm values with this upgrade
+# command too; argocd-configs only reconciles the Kustomize resources, not Helm.
+# The hub server cannot directly patch/delete workload objects through the UI.
+# Application sync/prune continues through the application-controller.
 
 kubectl wait --for=condition=available deployment/argocd-server \
   -n argocd \

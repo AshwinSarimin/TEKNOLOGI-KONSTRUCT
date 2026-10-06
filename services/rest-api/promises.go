@@ -3,11 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"reflect"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 )
@@ -18,6 +22,7 @@ import (
 const requestNamespace = "kratix-workloads"
 
 const promiseAPIVersion = "marketplace.kratix.io/v1alpha1"
+const ownerAnnotation = "teknologi.io/request-owner"
 
 // kindToResource is the allowlist of Promise request kinds this service will
 // create. Deliberately explicit rather than accepting any GVR — RBAC already
@@ -53,19 +58,28 @@ type applyResponse struct {
 	Status    string `json:"status"`
 }
 
-// handleApply is the one generic endpoint this service exposes. It mirrors
-// the Backstage kratix:apply scaffolder action and kubectl apply — same
-// outcome, same CRD, different consumption pattern (Architecture.md's
-// "pluggable access layer" principle).
+// handleApply creates a request or updates one owned by the authenticated caller.
+// Ownership is never inferred from the name, spec, or client-provided metadata.
 func handleApply(client dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		owner, _ := r.Context().Value(callerContextKey{}).(string)
+		if owner == "" {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
 		var req applyRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
 			return
 		}
-		if req.Name == "" {
-			writeError(w, http.StatusBadRequest, "name is required")
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			writeError(w, http.StatusBadRequest, "body must contain one JSON object")
+			return
+		}
+		if len(validation.IsDNS1123Subdomain(req.Name)) != 0 || req.Spec == nil {
+			writeError(w, http.StatusBadRequest, "a valid resource name and spec object are required")
 			return
 		}
 		resource, ok := kindToResource[req.Kind]
@@ -80,37 +94,65 @@ func handleApply(client dynamic.Interface) http.HandlerFunc {
 			Resource: resource,
 		}
 
-		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": promiseAPIVersion,
-				"kind":       req.Kind,
-				"metadata": map[string]interface{}{
-					"name":      req.Name,
-					"namespace": requestNamespace,
-				},
-				"spec": req.Spec,
-			},
+		resources := client.Resource(gvr).Namespace(requestNamespace)
+		existing, err := resources.Get(r.Context(), req.Name, metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			writeError(w, http.StatusBadGateway, "could not read request")
+			return
 		}
 
-		// Server-side apply — idempotent on retry, matches the idempotency
-		// pattern the team-onboarding pipeline's GitHub calls also had to adopt
-		// (see Experiments.md "Kratix pipeline retries fail when ... already exist").
-		_, err := client.Resource(gvr).Namespace(requestNamespace).Apply(
-			r.Context(), req.Name, obj,
-			metav1.ApplyOptions{FieldManager: "rest-api", Force: true},
-		)
+		status, code := "created", http.StatusCreated
+		if err == nil {
+			if existing.GetAnnotations()[ownerAnnotation] != owner {
+				writeError(w, http.StatusForbidden, "request is not owned by this caller; administrator review required for unowned requests")
+				return
+			}
+			if existing.GetDeletionTimestamp() != nil {
+				writeError(w, http.StatusConflict, "request is being deleted")
+				return
+			}
+			status, code = "unchanged", http.StatusOK
+			if !reflect.DeepEqual(existing.Object["spec"], req.Spec) {
+				// Retain UID, resourceVersion, annotations and controller metadata.
+				// Kubernetes rejects stale updates, including deletion/recreation.
+				existing.Object["spec"] = req.Spec
+				_, err = resources.Update(r.Context(), existing, metav1.UpdateOptions{FieldManager: "rest-api"})
+				status = "updated"
+			}
+		} else {
+			obj := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": promiseAPIVersion,
+					"kind":       req.Kind,
+					"metadata": map[string]interface{}{
+						"name":        req.Name,
+						"namespace":   requestNamespace,
+						"annotations": map[string]interface{}{ownerAnnotation: owner},
+					},
+					"spec": req.Spec,
+				},
+			}
+			_, err = resources.Create(r.Context(), obj, metav1.CreateOptions{FieldManager: "rest-api"})
+		}
 		if err != nil {
-			writeError(w, http.StatusBadGateway, "apply failed: "+err.Error())
+			switch {
+			case apierrors.IsConflict(err), apierrors.IsAlreadyExists(err), apierrors.IsNotFound(err):
+				writeError(w, http.StatusConflict, "request changed concurrently; retry to recheck ownership")
+			case apierrors.IsInvalid(err), apierrors.IsBadRequest(err):
+				writeError(w, http.StatusBadRequest, "invalid request spec")
+			default:
+				writeError(w, http.StatusBadGateway, "could not write request")
+			}
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(code)
 		_ = json.NewEncoder(w).Encode(applyResponse{
 			Kind:      req.Kind,
 			Name:      req.Name,
 			Namespace: requestNamespace,
-			Status:    "created",
+			Status:    status,
 		})
 	}
 }

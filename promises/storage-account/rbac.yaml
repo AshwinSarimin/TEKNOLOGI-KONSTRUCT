@@ -5,7 +5,7 @@ metadata:
 rules:
 - apiGroups: ["marketplace.kratix.io"]
   resources: ["storageaccountrequests"]
-  verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  verbs: ["create", "get", "list", "watch", "update"]
 ---
 # All Promise requests are submitted to the kratix-workloads namespace.
 # TeamOnboarding Promise creates team namespaces on the workload cluster.
