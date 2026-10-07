@@ -423,6 +423,38 @@ kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
   --resource-version="$REQUEST_RESOURCE_VERSION"
 ```
 
+### Resource target reservations
+
+The five Promise pipelines reserve XR names and their Kubernetes or Azure targets
+in `kratix-workloads` ConfigMaps before publishing manifests or running Terraform.
+Inspect the reservations for a request UID with:
+
+```bash
+REQUEST_UID="replace-with-request-uid"
+kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
+  get configmaps -l teknologi.io/ownership-reservation=true -o json |
+  jq -r --arg uid "$REQUEST_UID" '.items[] | select(.data.ownerUID == $uid) | [.metadata.name, .data.target] | @tsv'
+```
+
+Reservations remain after request deletion. For each target, first verify that
+the corresponding workload XR and Kubernetes or Azure resource are gone. For a
+Terraform target, also verify that the Azure account and its backend state blob
+are gone; the Terraform Promise currently has no automatic destroy workflow.
+Then remove only the verified reservation:
+
+```bash
+TARGET="azure-storage/replace-with-account-name"
+RESERVATION="ownership-$(printf '%s' "$TARGET" | shasum -a 256 | cut -c1-32)"
+kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
+  get configmap "$RESERVATION" -o yaml
+kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
+  delete configmap "$RESERVATION"
+```
+
+Keep `legacy-unowned` reservations until an administrator has resolved the
+corresponding older XR. Recreating a request creates a new UID and cannot reuse
+its old reservation until the above cleanup is complete.
+
 ## Clusters Bootstrap
 
 ### Set variables

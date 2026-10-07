@@ -184,6 +184,9 @@ spec:
               runAsGroup: 65532
               seccompProfile:
                 type: RuntimeDefault
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership:latest
+            imagePullPolicy: Always
           - name: notify
             image: teknologieur1acr.azurecr.io/kratix-notify:latest
             securityContext:

@@ -163,6 +163,9 @@ spec:
               runAsGroup: 65532
               seccompProfile:
                 type: RuntimeDefault
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership:latest
+            imagePullPolicy: Always
           # Stage 1: posts "request accepted" to Slack. "Resource live" is handled
           # separately by the persistent notify-watcher Deployment on the workload cluster.
           - name: notify

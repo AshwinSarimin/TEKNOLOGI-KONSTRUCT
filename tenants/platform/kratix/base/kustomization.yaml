@@ -12,5 +12,4 @@ resources:
   - configs/workload/github-app-credentials.yaml
   - configs/workload/terraform-credentials.yaml
   - configs/workload/networkpolicy.yaml
-
-  
+  - configs/workload/ownership-rbac.yaml

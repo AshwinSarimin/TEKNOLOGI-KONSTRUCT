@@ -64,6 +64,9 @@ spec:
           imagePullSecrets:
           - name: acr-credentials
           containers:
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership:latest
+            imagePullPolicy: Always
           - name: configure-tf
             image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform:latest
             securityContext:
