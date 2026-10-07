@@ -5,6 +5,7 @@ import "testing"
 func approvalRequest() Request {
 	var req Request
 	req.Metadata.UID = "11111111-1111-1111-1111-111111111111"
+	req.Metadata.Generation = 1
 	req.Spec.AppName = "approval-test"
 	req.Spec.BusinessUnit = "product"
 	req.Spec.Description = "A test team"
@@ -84,6 +85,31 @@ spec:
 	}
 	if approvalBranch(req) == approvalBranch(old) {
 		t.Fatal("changed request reused the old approval branch")
+	}
+}
+
+func TestClosedApprovalAttemptCanBeResubmitted(t *testing.T) {
+	req := approvalRequest()
+	firstBranch := approvalBranch(req)
+	// After a changed request is rejected or its PR is closed, another spec
+	// edit advances generation. The same desired spec needs a fresh branch.
+	req.Metadata.Generation = 3
+	if approvalBranch(req) == firstBranch {
+		t.Fatal("later approval attempt reused the branch of a closed PR")
+	}
+}
+
+func TestMutationWhileApprovalPendingCannotUseOldMerge(t *testing.T) {
+	pending := approvalRequest()
+	oldFile := renderTeamEntity(pending)
+	oldBranch := approvalBranch(pending)
+	pending.Metadata.Generation++
+	pending.Spec.Location = "northeurope"
+	if approvedBranch := approvalBranch(pending); approvedBranch == oldBranch {
+		t.Fatal("changed pending request reused its old PR branch")
+	}
+	if _, ok := approvedFromMain(pending, oldFile); ok {
+		t.Fatal("old PR merge authorized the changed pending request")
 	}
 }
 

@@ -9,9 +9,10 @@ type Request struct {
 	APIVersion string `yaml:"apiVersion"`
 	Kind       string `yaml:"kind"`
 	Metadata   struct {
-		Name      string `yaml:"name"`
-		Namespace string `yaml:"namespace"`
-		UID       string `yaml:"uid"`
+		Name       string `yaml:"name"`
+		Namespace  string `yaml:"namespace"`
+		UID        string `yaml:"uid"`
+		Generation int64  `yaml:"generation"`
 		// CreationTimestamp is the resource's own creation time, always present on
 		// the live object /kratix/input/object.yaml is rendered from (Kratix's
 		// reader init container re-fetches the resource fresh on every pipeline

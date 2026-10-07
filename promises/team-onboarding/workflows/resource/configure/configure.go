@@ -120,11 +120,12 @@ func renderTeamEntity(req Request) string {
 	return b.String()
 }
 
-// A request mutation gets a new approval branch. The UID prevents an unrelated
-// request for the same team from inheriting an old approval candidate.
+// A request mutation gets a new approval branch. Generation also lets a later
+// attempt at the same spec recover after an earlier PR was closed unmerged.
+// The UID prevents an unrelated request from inheriting an old candidate.
 func approvalBranch(req Request) string {
 	digest := sha256.Sum256([]byte(renderTeamEntity(req)))
-	return fmt.Sprintf("team/%s/%s/%x", req.Spec.AppName, req.Metadata.UID, digest[:8])
+	return fmt.Sprintf("team/%s/%s/g%d-%x", req.Spec.AppName, req.Metadata.UID, req.Metadata.Generation, digest[:8])
 }
 
 func renderPRBody(req Request) string {
