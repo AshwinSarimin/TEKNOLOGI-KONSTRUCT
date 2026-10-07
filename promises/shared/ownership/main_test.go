@@ -218,3 +218,27 @@ func TestTerraformAndCrossplaneCannotPublishSameAzureAccount(t *testing.T) {
 		t.Fatal("Crossplane request bypassed Terraform's Azure account reservation")
 	}
 }
+
+func TestDeleteVerificationRequiresExistingClaimsOwnedByRequest(t *testing.T) {
+	client, store, done := newTestClient(t)
+	defer done()
+	ctx := context.Background()
+	a := owner{UID: "uid-a", Kind: "StorageAccountTerraformRequest", Name: "first", Namespace: namespace}
+	b := owner{UID: "uid-b", Kind: "StorageAccountTerraformRequest", Name: "second", Namespace: namespace}
+	targets := []string{"azure-storage/tekappadevsa", "terraform-state/storage-account-app-a-dev.tfstate"}
+	if err := verifyReservations(ctx, client, a, targets); err == nil {
+		t.Fatal("missing claims permitted deletion")
+	}
+	if err := reserve(ctx, client, a, targets); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyReservations(ctx, client, b, targets); err == nil {
+		t.Fatal("foreign UID permitted deletion")
+	}
+	if err := verifyReservations(ctx, client, a, targets); err != nil {
+		t.Fatalf("owner could not delete: %v", err)
+	}
+	if len(store.objects) != 2 {
+		t.Fatal("verification changed ownership claims")
+	}
+}

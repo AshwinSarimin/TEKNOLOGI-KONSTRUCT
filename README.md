@@ -450,8 +450,29 @@ kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
 
 Reservations remain after request deletion. For each target, first verify that
 the corresponding workload XR and Kubernetes or Azure resource are gone. For a
-Terraform target, also verify that the Azure account and its backend state blob
-are gone; the Terraform Promise currently has no automatic destroy workflow.
+Terraform target, the request's delete workflow verifies ownership and runs
+`terraform destroy` before Kratix removes its Work. A failed destroy keeps the
+request in deletion with its claims intact. Once destroy succeeds, verify that
+the Azure account is gone, then delete and verify its now-empty backend state
+blob. The workflow leaves reservations in place until that check and downstream
+Work cleanup are complete.
+
+If the delete workflow fails, inspect the `destroy-tf` Job and correct the
+backend or state issue. A missing or unexpected state resource requires manual
+review; the workflow will not run `destroy` against it. After correcting the
+issue, trigger a new delete attempt on the terminating request:
+
+```bash
+kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
+  label storageaccountterraformrequest replace-with-request-name \
+  kratix.io/manual-reconciliation=true --overwrite
+```
+
+After a successful delete, verify that the backend state blob has no tracked
+resources before removing it. Use the account and container documented in
+[Terraform storage account](#terraform-storage-account), with the state key
+`storage-account-{appName}-{environment}.tfstate`.
+
 Then remove only the verified reservation:
 
 ```bash

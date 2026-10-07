@@ -51,6 +51,13 @@ func main() {
 	// Compute Azure storage account name (3-24 chars, lowercase alphanumeric)
 	saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
 	log.Printf("Storage account name: %s", saName)
+	if os.Getenv("PIPELINE_ACTION") == "destroy" {
+		if err := destroyTerraform(req, saName, terraformCommand); err != nil {
+			log.Fatalf("Terraform destroy failed; request deletion remains blocked: %v", err)
+		}
+		log.Println("Terraform destroy succeeded; state blob and ownership claims remain for verified release")
+		return
+	}
 
 	slackURL := os.Getenv("SLACK_WEBHOOK_URL")
 
@@ -102,24 +109,12 @@ type TerraformResult struct {
 }
 
 func runTerraform(req Request, saName string) (*TerraformResult, error) {
-	// Write tfvars to /tmp so they are accessible regardless of -chdir
-	vars := map[string]string{
-		"storage_account_name": saName,
-		"resource_group_name":  req.Spec.ResourceGroupName,
-		"location":             req.Spec.Location,
-		"app_name":             req.Spec.AppName,
-		"environment":          req.Spec.Environment,
-	}
-	varsData, err := json.Marshal(vars)
+	varFile, err := writeTFVars(req, saName)
 	if err != nil {
-		return nil, fmt.Errorf("marshal vars: %w", err)
-	}
-	varFile := "/tmp/tfvars.json"
-	if err := ioutil.WriteFile(varFile, varsData, 0644); err != nil {
-		return nil, fmt.Errorf("write tfvars: %w", err)
+		return nil, err
 	}
 
-	// Backend config — pulled from env vars (set from a Kubernetes Secret in the Promise spec)
+	// Backend config — pulled from env vars (set from a Kubernetes ConfigMap)
 	backendRG := requireEnv("TF_BACKEND_RESOURCE_GROUP")
 	backendSA := requireEnv("TF_BACKEND_STORAGE_ACCOUNT")
 	backendContainer := getEnv("TF_BACKEND_CONTAINER", "terraform")
@@ -174,6 +169,97 @@ func runTerraform(req Request, saName string) (*TerraformResult, error) {
 	return result, nil
 }
 
+func writeTFVars(req Request, saName string) (string, error) {
+	// Write tfvars to /tmp so they are accessible regardless of -chdir.
+	vars := map[string]string{
+		"storage_account_name": saName,
+		"resource_group_name":  req.Spec.ResourceGroupName,
+		"location":             req.Spec.Location,
+		"app_name":             req.Spec.AppName,
+		"environment":          req.Spec.Environment,
+	}
+	varsData, err := json.Marshal(vars)
+	if err != nil {
+		return "", fmt.Errorf("marshal vars: %w", err)
+	}
+	varFile := "/tmp/tfvars.json"
+	if err := ioutil.WriteFile(varFile, varsData, 0644); err != nil {
+		return "", fmt.Errorf("write tfvars: %w", err)
+	}
+	return varFile, nil
+}
+
+type terraformState struct {
+	Resources []struct {
+		Mode      string `json:"mode"`
+		Type      string `json:"type"`
+		Name      string `json:"name"`
+		Instances []struct {
+			Attributes struct {
+				Name              string `json:"name"`
+				ResourceGroupName string `json:"resource_group_name"`
+			} `json:"attributes"`
+		} `json:"instances"`
+	} `json:"resources"`
+}
+
+func terraformCommand(name string, args ...string) (string, error) {
+	if len(args) > 2 && args[1] == "state" && args[2] == "pull" {
+		return runCmdOutput(name, args...)
+	}
+	return "", runCmd(name, args...)
+}
+
+func destroyTerraform(req Request, saName string, execute func(string, ...string) (string, error)) error {
+	varFile, err := writeTFVars(req, saName)
+	if err != nil {
+		return err
+	}
+	backendRG := os.Getenv("TF_BACKEND_RESOURCE_GROUP")
+	backendSA := os.Getenv("TF_BACKEND_STORAGE_ACCOUNT")
+	if backendRG == "" || backendSA == "" {
+		return fmt.Errorf("Terraform backend resource group and storage account are required")
+	}
+	stateKey := fmt.Sprintf("storage-account-%s-%s.tfstate", req.Spec.AppName, req.Spec.Environment)
+	_, err = execute("terraform", "-chdir=/app/terraform", "init",
+		"-backend-config=resource_group_name="+backendRG,
+		"-backend-config=storage_account_name="+backendSA,
+		"-backend-config=container_name="+getEnv("TF_BACKEND_CONTAINER", "terraform"),
+		"-backend-config=key="+stateKey)
+	if err != nil {
+		return fmt.Errorf("terraform init: %w", err)
+	}
+	readState := func() (terraformState, error) {
+		var state terraformState
+		raw, err := execute("terraform", "-chdir=/app/terraform", "state", "pull")
+		if err != nil {
+			return state, fmt.Errorf("terraform state pull: %w", err)
+		}
+		if err := json.Unmarshal([]byte(raw), &state); err != nil {
+			return state, fmt.Errorf("parse Terraform state: %w", err)
+		}
+		return state, nil
+	}
+	before, err := readState()
+	if err != nil {
+		return err
+	}
+	if len(before.Resources) != 1 || before.Resources[0].Mode != "managed" || before.Resources[0].Type != "azurerm_storage_account" || before.Resources[0].Name != "this" || len(before.Resources[0].Instances) != 1 || before.Resources[0].Instances[0].Attributes.Name != saName || before.Resources[0].Instances[0].Attributes.ResourceGroupName != req.Spec.ResourceGroupName {
+		return fmt.Errorf("state %s does not track only expected account %s in %s; manual review required", stateKey, saName, req.Spec.ResourceGroupName)
+	}
+	if _, err := execute("terraform", "-chdir=/app/terraform", "destroy", "-auto-approve", "-var-file="+varFile); err != nil {
+		return fmt.Errorf("terraform destroy: %w", err)
+	}
+	after, err := readState()
+	if err != nil {
+		return err
+	}
+	if len(after.Resources) != 0 {
+		return fmt.Errorf("state %s still tracks %d resources after destroy", stateKey, len(after.Resources))
+	}
+	return nil
+}
+
 func runCmd(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
@@ -217,10 +303,10 @@ func writeOutputConfigMap(req Request, saName, primaryBlobEndpoint string) error
 	}
 
 	type configMap struct {
-		APIVersion string            `yaml:"apiVersion"`
-		Kind       string            `yaml:"kind"`
-		Metadata   configMapMeta     `yaml:"metadata"`
-		Data       configMapData     `yaml:"data"`
+		APIVersion string        `yaml:"apiVersion"`
+		Kind       string        `yaml:"kind"`
+		Metadata   configMapMeta `yaml:"metadata"`
+		Data       configMapData `yaml:"data"`
 	}
 
 	cm := configMap{

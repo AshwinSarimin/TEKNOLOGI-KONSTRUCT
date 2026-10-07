@@ -123,3 +123,71 @@ spec:
                   name: slack-webhook
                   key: url
                   optional: true
+      delete:
+      - apiVersion: platform.kratix.io/v1alpha1
+        kind: Pipeline
+        metadata:
+          name: destroy-tf
+        spec:
+          imagePullSecrets:
+          - name: acr-credentials
+          containers:
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership:latest
+            imagePullPolicy: Always
+            env:
+            - name: OWNERSHIP_MODE
+              value: verify
+          - name: destroy-tf
+            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform:latest
+            imagePullPolicy: Always
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: [ALL]
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile:
+                type: RuntimeDefault
+            env:
+            - name: PIPELINE_ACTION
+              value: destroy
+            - name: ARM_USE_AZUREAD
+              value: "true"
+            - name: TF_BACKEND_RESOURCE_GROUP
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendResourceGroup
+            - name: TF_BACKEND_STORAGE_ACCOUNT
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendStorageAccount
+            - name: TF_BACKEND_CONTAINER
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendContainer
+                  optional: true
+            - name: ARM_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: cloudClientId
+            - name: ARM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: terraform-azure-creds
+                  key: client_secret
+            - name: ARM_TENANT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: azureTenantId
+            - name: ARM_SUBSCRIPTION_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: cloudSubscriptionId

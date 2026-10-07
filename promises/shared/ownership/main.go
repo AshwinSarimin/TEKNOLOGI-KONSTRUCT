@@ -188,6 +188,29 @@ func reserve(ctx context.Context, c *kubeClient, o owner, targets []string) erro
 	return nil
 }
 
+func verifyReservations(ctx context.Context, c *kubeClient, o owner, targets []string) error {
+	if o.UID == "" || o.Kind == "" || o.Name == "" || o.Namespace != namespace || len(targets) == 0 {
+		return errors.New("delete verification requires request identity and targets")
+	}
+	for _, target := range targets {
+		status, body, err := c.call(ctx, http.MethodGet, reservationPath("/"+reservationName(target)), nil)
+		if err != nil {
+			return err
+		}
+		if status != http.StatusOK {
+			return fmt.Errorf("read reservation %s: HTTP %d: %s", target, status, strings.TrimSpace(string(body)))
+		}
+		var cm configMap
+		if err := json.Unmarshal(body, &cm); err != nil {
+			return err
+		}
+		if cm.Data["target"] != target || cm.Data["ownerUID"] != o.UID {
+			return fmt.Errorf("reservation %s does not belong to request UID %s", target, o.UID)
+		}
+	}
+	return nil
+}
+
 type resource struct {
 	Kind     string `yaml:"kind"`
 	Metadata struct {
@@ -332,6 +355,12 @@ func run(ctx context.Context) error {
 	client, err := inClusterClient()
 	if err != nil {
 		return err
+	}
+	if os.Getenv("OWNERSHIP_MODE") == "verify" {
+		if o.Kind != "StorageAccountTerraformRequest" {
+			return fmt.Errorf("delete verification is unsupported for %s", o.Kind)
+		}
+		return verifyReservations(ctx, client, o, targets)
 	}
 	return reserve(ctx, client, o, targets)
 }

@@ -31,5 +31,8 @@ subjects:
   name: storage-account-terraform-resource-configure-configure-tf
   namespace: kratix-workloads
 - kind: ServiceAccount
+  name: storage-account-terraform-resource-delete-destroy-tf
+  namespace: kratix-workloads
+- kind: ServiceAccount
   name: team-onboarding-resource-configure-pr-watcher
   namespace: kratix-workloads
