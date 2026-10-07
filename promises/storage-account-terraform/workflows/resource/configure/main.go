@@ -122,7 +122,7 @@ func runTerraform(req Request, saName string) (*TerraformResult, error) {
 	// Backend config — pulled from env vars (set from a Kubernetes Secret in the Promise spec)
 	backendRG := requireEnv("TF_BACKEND_RESOURCE_GROUP")
 	backendSA := requireEnv("TF_BACKEND_STORAGE_ACCOUNT")
-	backendContainer := getEnv("TF_BACKEND_CONTAINER", "tfstate")
+	backendContainer := getEnv("TF_BACKEND_CONTAINER", "terraform")
 	stateKey := fmt.Sprintf("storage-account-%s-%s.tfstate", req.Spec.AppName, req.Spec.Environment)
 
 	log.Printf("Terraform backend: sa=%s container=%s key=%s", backendSA, backendContainer, stateKey)

@@ -14,8 +14,8 @@ data:
   orchestrationBaseBranch: main
   githubAppId: "4461973"
   githubAppInstallationId: "150674345"
-  terraformBackendResourceGroup: teknologi-eur1-prd-k8s-rg
+  terraformBackendResourceGroup: teknologi-eur1-prd-management-rg
   terraformBackendStorageAccount: teknologieur1sa
-  terraformBackendContainer: tfstate
+  terraformBackendContainer: terraform
   cloudClientId: a7efd1ee-7493-44f8-a823-2f7fdc85b869
   cloudSubscriptionId: e229909d-d13f-44aa-ae26-046922d181eb

@@ -154,7 +154,14 @@ The GitHub App needs configurations for Backstage to have GitHub signin:
 
 #### Terraform storage account
 
-A Terraform storage account will be used to store the tfstate. The existing storage account `teknologieur1sa` will be used for this
+The Terraform backend uses the existing storage account `teknologieur1sa` in
+`teknologi-eur1-prd-management-rg`, with the `terraform` blob container. These
+values are configured for the Kratix pipeline in
+`tenants/platform/kratix/base/configs/workload/platform-config.yaml`.
+Each storage-account request uses the state key
+`storage-account-{appName}-{environment}.tfstate` inside that container. The
+backend resource group is separate from `teknologi-eur1-prd-platform-rg`,
+which holds the Azure resources created by the platform.
 
 ```bash
 RESOURCE_GROUP="teknologi-eur1-prd-management-rg"
@@ -163,6 +170,11 @@ SA_NAME="teknologieur1sa"
 CONTAINER_NAME="terraform"
 
 az storage container create \
+  --name "$CONTAINER_NAME" \
+  --account-name "$SA_NAME" \
+  --auth-mode login
+
+az storage container show \
   --name "$CONTAINER_NAME" \
   --account-name "$SA_NAME" \
   --auth-mode login
