@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -46,6 +47,9 @@ func runConfigure() {
 	}
 
 	teamFilePath := fmt.Sprintf("model/organization/%s/teams/%s.yaml", req.Spec.BusinessUnit, req.Spec.AppName)
+	if req.Metadata.UID == "" {
+		log.Fatal("request metadata.uid is required for approval binding")
+	}
 	teamYAML := renderTeamEntity(req)
 
 	// Kratix re-runs this configure workflow for every existing resource whenever
@@ -64,7 +68,7 @@ func runConfigure() {
 		return
 	}
 
-	branch := fmt.Sprintf("team/%s", req.Spec.AppName)
+	branch := approvalBranch(req)
 	mainSHA, err := gh.getDefaultBranchSHA(orchestrationOwner, orchestrationRepo, baseBranch)
 	if err != nil {
 		log.Fatalf("get default branch sha: %v", err)
@@ -101,6 +105,12 @@ func renderTeamEntity(req Request) string {
 	fmt.Fprintf(&b, "  description: %q\n", req.Spec.Description)
 	fmt.Fprintf(&b, "  annotations:\n")
 	fmt.Fprintf(&b, "    backstage.io/kubernetes-id: %s\n", req.Spec.AppName)
+	fmt.Fprintf(&b, "    teknologi.io/onboarding-request-uid: %q\n", req.Metadata.UID)
+	fmt.Fprintf(&b, "    teknologi.io/onboarding-environment: %q\n", req.Spec.Environment)
+	fmt.Fprintf(&b, "    teknologi.io/onboarding-location: %q\n", req.Spec.Location)
+	fmt.Fprintf(&b, "    teknologi.io/onboarding-namespace: %q\n", fmt.Sprint(req.Spec.Resources.Namespace))
+	fmt.Fprintf(&b, "    teknologi.io/onboarding-keyvault: %q\n", fmt.Sprint(req.Spec.Resources.KeyVault))
+	fmt.Fprintf(&b, "    teknologi.io/onboarding-storage-account: %q\n", fmt.Sprint(req.Spec.Resources.StorageAccount))
 	fmt.Fprintf(&b, "spec:\n")
 	fmt.Fprintf(&b, "  type: team\n")
 	fmt.Fprintf(&b, "  profile:\n")
@@ -110,11 +120,19 @@ func renderTeamEntity(req Request) string {
 	return b.String()
 }
 
+// A request mutation gets a new approval branch. The UID prevents an unrelated
+// request for the same team from inheriting an old approval candidate.
+func approvalBranch(req Request) string {
+	digest := sha256.Sum256([]byte(renderTeamEntity(req)))
+	return fmt.Sprintf("team/%s/%s/%x", req.Spec.AppName, req.Metadata.UID, digest[:8])
+}
+
 func renderPRBody(req Request) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Registers **%s** (`%s`) in the organisation SSoT.\n\n", req.Spec.DisplayName, req.Spec.AppName)
 	fmt.Fprintf(&b, "Opened automatically by the `team-onboarding` Kratix Promise.\n\n")
 	fmt.Fprintf(&b, "### Requested resources (environment: `%s`)\n\n", req.Spec.Environment)
+	fmt.Fprintf(&b, "Azure location: `%s`\n\n", req.Spec.Location)
 	fmt.Fprintf(&b, "| Resource | Requested |\n|---|---|\n")
 	fmt.Fprintf(&b, "| Kubernetes Namespace | %s |\n", checkmark(req.Spec.Resources.Namespace))
 	fmt.Fprintf(&b, "| Azure KeyVault | %s |\n", checkmark(req.Spec.Resources.KeyVault))

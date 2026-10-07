@@ -11,6 +11,7 @@ type Request struct {
 	Metadata   struct {
 		Name      string `yaml:"name"`
 		Namespace string `yaml:"namespace"`
+		UID       string `yaml:"uid"`
 		// CreationTimestamp is the resource's own creation time, always present on
 		// the live object /kratix/input/object.yaml is rendered from (Kratix's
 		// reader init container re-fetches the resource fresh on every pipeline
