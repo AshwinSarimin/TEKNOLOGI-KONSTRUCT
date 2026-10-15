@@ -46,7 +46,7 @@
     "@backstage/plugin-search-backend-module-techdocs": "^0.4.13",
     "@backstage/plugin-search-backend-node": "^1.4.3",
     "@backstage/plugin-signals-backend": "^0.3.14",
-    "@backstage/plugin-techdocs-backend": "^2.1.7",
+    "@backstage/plugin-techdocs-backend": "^2.2.4",
     "@kubernetes/client-node": "^1.4.0",
     "app": "link:../app",
     "better-sqlite3": "^12.0.0",
