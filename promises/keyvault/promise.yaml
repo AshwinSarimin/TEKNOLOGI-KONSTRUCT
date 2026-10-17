@@ -92,6 +92,9 @@ spec:
                     default: westeurope
                   resourceGroupName:
                     type: string
+                  vaultName:
+                    type: string
+                    description: "Azure-safe compact Key Vault name (<=24 alphanumeric chars), computed by the pipeline from appName+environment"
               status:
                 type: object
                 properties:
@@ -154,14 +157,13 @@ spec:
                 string:
                   fmt: "kv-%s-%s"
               toFieldPath: metadata.name
-            - type: CombineFromComposite
-              combine:
-                variables:
-                - fromFieldPath: spec.appName
-                - fromFieldPath: spec.environment
-                strategy: string
-                string:
-                  fmt: "kv-%s-%s"
+            # Azure Key Vault names must be <=24 alphanumeric chars — the raw
+            # "kv-{appName}-{env}" combine above can exceed that for normal-length
+            # team names (see Experiments.md, 2026-09-22). The actual Azure name
+            # comes from spec.vaultName, computed and length-truncated by the
+            # pipeline, not from re-combining appName/environment here.
+            - type: FromCompositeFieldPath
+              fromFieldPath: spec.vaultName
               toFieldPath: metadata.annotations[crossplane.io/external-name]
             - type: ToCompositeFieldPath
               fromFieldPath: metadata.name
@@ -185,7 +187,7 @@ spec:
           - name: acr-credentials
           containers:
           - name: configure-keyvault
-            image: teknologieur1acr.azurecr.io/kratix-keyvault:latest
+            image: teknologieur1acr.azurecr.io/kratix-keyvault@sha256:01bc32c5de73c04343235ebd4d1350e194d5fca63969dedc62ae09dc790f1e7c
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -201,10 +203,13 @@ spec:
                 configMapKeyRef:
                   name: platform-config
                   key: azureTenantId
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:19ad386b60ea56e941c8fda59687dd2613b5c7e328a9c711aa3d8b07b4b909cf
+            imagePullPolicy: Always
           # Stage 1: posts "request accepted" to Slack. "Resource live" is handled
           # separately by the persistent notify-watcher Deployment on the workload cluster.
           - name: notify
-            image: teknologieur1acr.azurecr.io/kratix-notify:latest
+            image: teknologieur1acr.azurecr.io/kratix-notify@sha256:7ef11e5eca9a796036b36502d9d460040f9179f993f3bccfa22c9a076da36893
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:

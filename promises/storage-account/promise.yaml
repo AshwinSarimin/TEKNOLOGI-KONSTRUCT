@@ -174,7 +174,7 @@ spec:
           - name: acr-credentials
           containers:
           - name: configure-storage-account
-            image: teknologieur1acr.azurecr.io/kratix-storage-account:latest
+            image: teknologieur1acr.azurecr.io/kratix-storage-account@sha256:5a3cf3d457e01b27d1363210d8c15d914cffa7a8907ca640d13a8b95b12ab85e
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -184,8 +184,11 @@ spec:
               runAsGroup: 65532
               seccompProfile:
                 type: RuntimeDefault
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:19ad386b60ea56e941c8fda59687dd2613b5c7e328a9c711aa3d8b07b4b909cf
+            imagePullPolicy: Always
           - name: notify
-            image: teknologieur1acr.azurecr.io/kratix-notify:latest
+            image: teknologieur1acr.azurecr.io/kratix-notify@sha256:7ef11e5eca9a796036b36502d9d460040f9179f993f3bccfa22c9a076da36893
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:

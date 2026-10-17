@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/setup_infra
+      - feature/redeploy_platform
     paths:
       - 'backstage/app/**'
       - '.github/workflows/build-backstage.yaml'
@@ -38,6 +38,10 @@ jobs:
       - name: Type check
         working-directory: backstage/app
         run: yarn tsc
+
+      - name: Backend tests
+        working-directory: backstage/app
+        run: yarn workspace backend test --watch=false --runInBand
 
       - name: Build frontend
         working-directory: backstage/app

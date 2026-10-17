@@ -1,8 +1,6 @@
-# Shared bearer token external callers present as `Authorization: Bearer <key>`.
-# Value lives only in Key Vault — bootstrap once via:
-#   az keyvault secret set --vault-name teknologi-eur1-kv --name platform-rest-api-key --value <generated-value>
-# (same one-time-manual pattern as the other platform bootstrap secrets — see
-# Architecture.md "Secret Management" and Experiments.md).
+# JSON object mapping stable caller IDs to distinct bearer tokens (API_KEYS).
+# Bootstrap platform-rest-api-keys in Key Vault before deploying this revision;
+# see README. The old shared platform-rest-api-key is deliberately not a fallback.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -16,6 +14,6 @@ spec:
   target:
     name: rest-api-key
   data:
-  - secretKey: apiKey
+  - secretKey: apiKeys
     remoteRef:
-      key: platform-rest-api-key
+      key: platform-rest-api-keys

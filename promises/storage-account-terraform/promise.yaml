@@ -64,8 +64,11 @@ spec:
           imagePullSecrets:
           - name: acr-credentials
           containers:
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:19ad386b60ea56e941c8fda59687dd2613b5c7e328a9c711aa3d8b07b4b909cf
+            imagePullPolicy: Always
           - name: configure-tf
-            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform:latest
+            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform@sha256:382f44ce6b24d8bbf722b41a76b1ae359c73952788506d66a2c87c8744dd4232
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -120,3 +123,71 @@ spec:
                   name: slack-webhook
                   key: url
                   optional: true
+      delete:
+      - apiVersion: platform.kratix.io/v1alpha1
+        kind: Pipeline
+        metadata:
+          name: destroy-tf
+        spec:
+          imagePullSecrets:
+          - name: acr-credentials
+          containers:
+          - name: ownership-gate
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:19ad386b60ea56e941c8fda59687dd2613b5c7e328a9c711aa3d8b07b4b909cf
+            imagePullPolicy: Always
+            env:
+            - name: OWNERSHIP_MODE
+              value: verify
+          - name: destroy-tf
+            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform@sha256:382f44ce6b24d8bbf722b41a76b1ae359c73952788506d66a2c87c8744dd4232
+            imagePullPolicy: Always
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: [ALL]
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile:
+                type: RuntimeDefault
+            env:
+            - name: PIPELINE_ACTION
+              value: destroy
+            - name: ARM_USE_AZUREAD
+              value: "true"
+            - name: TF_BACKEND_RESOURCE_GROUP
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendResourceGroup
+            - name: TF_BACKEND_STORAGE_ACCOUNT
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendStorageAccount
+            - name: TF_BACKEND_CONTAINER
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: terraformBackendContainer
+                  optional: true
+            - name: ARM_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: cloudClientId
+            - name: ARM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: terraform-azure-creds
+                  key: client_secret
+            - name: ARM_TENANT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: azureTenantId
+            - name: ARM_SUBSCRIPTION_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: platform-config
+                  key: cloudSubscriptionId

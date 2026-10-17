@@ -37,11 +37,11 @@ spec:
           env:
             - name: PORT
               value: "8080"
-            - name: API_KEY
+            - name: API_KEYS
               valueFrom:
                 secretKeyRef:
                   name: rest-api-key
-                  key: apiKey
+                  key: apiKeys
           readinessProbe:
             httpGet:
               path: /healthz

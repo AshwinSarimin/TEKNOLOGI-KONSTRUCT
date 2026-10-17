@@ -96,9 +96,53 @@ func writeXNamespace(req Request) error {
 	if err := ioutil.WriteFile(path, out, 0644); err != nil {
 		return fmt.Errorf("write failed: %w", err)
 	}
+	policy, needed, err := networkPolicyFor(req.Spec.NamespaceName, req.Spec.NetworkVisibility)
+	if err != nil {
+		return err
+	}
+	if needed {
+		out, err := yaml.Marshal(policy)
+		if err != nil {
+			return fmt.Errorf("marshal network policy: %w", err)
+		}
+		path := fmt.Sprintf("/kratix/output/networkpolicy-%s.yaml", req.Spec.NamespaceName)
+		if err := ioutil.WriteFile(path, out, 0644); err != nil {
+			return fmt.Errorf("write network policy: %w", err)
+		}
+	}
 
 	log.Printf("Wrote XNamespace to %s", path)
 	return nil
+}
+
+func networkPolicyFor(namespace, visibility string) (map[string]interface{}, bool, error) {
+	switch visibility {
+	case "", "private":
+	case "public":
+		return nil, false, nil
+	default:
+		return nil, false, fmt.Errorf("unsupported network visibility %q", visibility)
+	}
+	return map[string]interface{}{
+		"apiVersion": "networking.k8s.io/v1",
+		"kind":       "NetworkPolicy",
+		"metadata": map[string]interface{}{
+			"name":      "private-ingress",
+			"namespace": namespace,
+			"annotations": map[string]string{
+				"argocd.argoproj.io/sync-wave": "2",
+			},
+		},
+		"spec": map[string]interface{}{
+			"podSelector": map[string]interface{}{},
+			"policyTypes": []string{"Ingress"},
+			"ingress": []interface{}{
+				map[string]interface{}{
+					"from": []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{}}},
+				},
+			},
+		},
+	}, true, nil
 }
 
 func writeStatus(req Request) error {

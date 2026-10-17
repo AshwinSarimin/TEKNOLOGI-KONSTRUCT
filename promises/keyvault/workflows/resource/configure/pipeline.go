@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -16,6 +19,7 @@ type Request struct {
 	Metadata   struct {
 		Name      string `yaml:"name"`
 		Namespace string `yaml:"namespace"`
+		UID       string `yaml:"uid"`
 	} `yaml:"metadata"`
 	Spec struct {
 		AppName           string `yaml:"appName"`
@@ -39,6 +43,7 @@ type XKeyVault struct {
 		Environment       string `yaml:"environment"`
 		Location          string `yaml:"location"`
 		ResourceGroupName string `yaml:"resourceGroupName"`
+		VaultName         string `yaml:"vaultName"`
 	} `yaml:"spec"`
 }
 
@@ -55,21 +60,38 @@ func main() {
 		log.Fatalf("Failed to parse request: %v", err)
 	}
 
-	log.Printf("Processing KeyVaultRequest: team=%s env=%s location=%s",
-		req.Spec.AppName, req.Spec.Environment, req.Spec.Location)
+	vaultName, err := resolveVaultName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+	if err != nil {
+		log.Fatalf("Failed to resolve Key Vault name: %v", err)
+	}
+	log.Printf("Processing KeyVaultRequest: team=%s env=%s location=%s vaultName=%s",
+		req.Spec.AppName, req.Spec.Environment, req.Spec.Location, vaultName)
 
-	if err := writeXKeyVault(req); err != nil {
+	if err := writeXKeyVault(req, vaultName); err != nil {
 		log.Fatalf("Failed to write XKeyVault: %v", err)
 	}
 
-	if err := writeStatus(req); err != nil {
+	if err := writeStatus(req, vaultName); err != nil {
 		log.Printf("Failed to write status: %v", err)
 	}
 
 	log.Println("Pipeline completed successfully")
 }
 
-func writeXKeyVault(req Request) error {
+// computeVaultName is the legacy naming rule used only to locate an
+// existing request's UID reservation.
+func computeVaultName(team, env string) string {
+	re := regexp.MustCompile(`[^a-z0-9]`)
+	team = re.ReplaceAllString(strings.ToLower(team), "")
+	env = re.ReplaceAllString(strings.ToLower(env), "")
+	name := "kv" + team + env
+	if len(name) > 24 {
+		name = name[:24]
+	}
+	return name
+}
+
+func writeXKeyVault(req Request, vaultName string) error {
 	xkv := XKeyVault{}
 	xkv.APIVersion = "platform.teknologi.io/v1alpha1"
 	xkv.Kind = "XKeyVault"
@@ -90,6 +112,7 @@ func writeXKeyVault(req Request) error {
 	xkv.Spec.Environment = req.Spec.Environment
 	xkv.Spec.Location = req.Spec.Location
 	xkv.Spec.ResourceGroupName = req.Spec.ResourceGroupName
+	xkv.Spec.VaultName = vaultName
 
 	out, err := yaml.Marshal(xkv)
 	if err != nil {
@@ -109,9 +132,7 @@ func writeXKeyVault(req Request) error {
 	return nil
 }
 
-func writeStatus(req Request) error {
-	vaultName := fmt.Sprintf("kv-%s-%s", req.Spec.AppName, req.Spec.Environment)
-
+func writeStatus(req Request, vaultName string) error {
 	status := map[string]interface{}{
 		"message":           fmt.Sprintf("KeyVault %s scheduled for provisioning", vaultName),
 		"vaultName":         vaultName,
@@ -129,9 +150,12 @@ func writeStatus(req Request) error {
 		return err
 	}
 
-	// notify.json — read by the shared notify container
+	// notify.json — read by the shared notify container. Uses the XR's own
+	// K8s name (kv-<appName>-<env>), not the Azure-safe compact vaultName,
+	// for a readable Slack message — mirrors the storage-account promise.
+	xrName := fmt.Sprintf("kv-%s-%s", req.Spec.AppName, req.Spec.Environment)
 	notify := map[string]string{
-		"resourceName":       vaultName,
+		"resourceName":       xrName,
 		"resourceType":       "KeyVault",
 		"requesterNamespace": req.Metadata.Namespace,
 		"xrPlural":           "xkeyvaults",

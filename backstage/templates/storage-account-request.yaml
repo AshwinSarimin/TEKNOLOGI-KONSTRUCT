@@ -22,6 +22,8 @@ spec:
 
   parameters:
     - title: Storage Account details
+      backstage:permissions:
+        tags: [platform-only]
       description: |
         The storage account is named `tek{appName}{environment}sa` (Azure rules:
         lowercase alphanumeric, max 24 chars) inside your team's resource group
@@ -50,6 +52,8 @@ spec:
   steps:
     - id: request-storage-account
       name: Submit storage account request
+      backstage:permissions:
+        tags: [platform-only]
       action: kratix:apply
       input:
         manifest:

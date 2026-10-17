@@ -11,7 +11,7 @@ spec:
     solvers:
     - dns01:
         azureDNS:
-          clientID: "62a7a50c-164c-4ba5-9247-031c47a76cc9"
+          clientID: "a7efd1ee-7493-44f8-a823-2f7fdc85b869"
           clientSecretSecretRef:
             name: azuredns-credentials
             key: clientSecret

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,11 +56,13 @@ func runWatcher() {
 	}
 
 	teamFilePath := fmt.Sprintf("model/organization/%s/teams/%s.yaml", req.Spec.BusinessUnit, req.Spec.AppName)
-	teamYAML := renderTeamEntity(req)
+	if req.Metadata.UID == "" {
+		log.Fatal("request metadata.uid is required for approval binding")
+	}
 
-	// Single existence check covers both "configure found this team already onboarded
-	// and never opened a PR" and "the PR was merged since the last check" — no need to
-	// remember which case we're in, since both mean the same thing: provision now.
+	// The reviewed file on main is the approval authority. It must match the
+	// current request's UID and complete provisioning specification before any
+	// XR output is written.
 	existing, exists, err := gh.getFileContent(orchestrationOwner, orchestrationRepo, teamFilePath, baseBranch)
 	if err != nil {
 		writeWorkflowControl(workflowControl{
@@ -67,19 +71,18 @@ func runWatcher() {
 		})
 		return
 	}
-	if exists && existing == teamYAML {
+	if approved, ok := approvedFromMain(req, existing); exists && ok {
 		log.Printf("Team file %s is on %s with matching content — provisioning resources", teamFilePath, baseBranch)
-		if err := writeXROutputs(req); err != nil {
+		if err := writeXROutputs(approved); err != nil {
 			log.Fatalf("write XR outputs: %v", err)
 		}
-		// No approver identity available on this path — either the team was already
-		// onboarded before this run (no PR to attribute), or the merge that put the
-		// file here happened before a prior check already recorded it.
-		writeWatcherStatus(req, "", "")
+		// Matching main content also covers identical retries after the PR merge.
+		// The file does not carry the merger identity, so these fields stay empty.
+		writeWatcherStatus(approved, "", "")
 		return
 	}
 
-	branch := fmt.Sprintf("team/%s", req.Spec.AppName)
+	branch := approvalBranch(req)
 	prSummary, err := gh.findPR(orchestrationOwner, orchestrationRepo, branch, baseBranch)
 	if err != nil {
 		writeWorkflowControl(workflowControl{
@@ -104,20 +107,12 @@ func runWatcher() {
 		log.Fatalf("PR %s was closed without being merged — delete this TeamOnboardingRequest and resubmit to restart the flow", pr.HTMLURL)
 	}
 	if pr.Merged {
-		// Belt-and-braces: in practice the getFileContent check above already catches
-		// a just-merged PR, since GitHub creates the merge commit on main atomically
-		// as part of the merge itself. Handled explicitly anyway rather than relying
-		// on that timing — and it's the one place we actually have merge attribution
-		// (who merged it, when) to record as the durable approval record.
-		approvedBy := ""
-		if pr.MergedBy != nil {
-			approvedBy = pr.MergedBy.Login
-		}
-		log.Printf("PR %s merged by %s — provisioning resources", pr.HTMLURL, approvedBy)
-		if err := writeXROutputs(req); err != nil {
-			log.Fatalf("write XR outputs: %v", err)
-		}
-		writeWatcherStatus(req, approvedBy, pr.MergedAt)
+		// A merged PR is not itself authority: a subsequent edit, an older PR,
+		// or a changed request may leave main with a different specification.
+		writeWorkflowControl(workflowControl{
+			RetryAfter: pollInterval.String(),
+			Message:    fmt.Sprintf("PR %s merged, but main does not contain this request's approved specification", pr.HTMLURL),
+		})
 		return
 	}
 
@@ -132,6 +127,54 @@ func runWatcher() {
 		RetryAfter: pollInterval.String(),
 		Message:    fmt.Sprintf("waiting for PR %s to be merged", pr.HTMLURL),
 	})
+}
+
+// approvedFromMain is the sole provisioning gate. It returns a fresh request
+// whose provisioning fields were decoded from reviewed Git content, after
+// checking that content matches the live request byte for byte. A legacy team
+// file has no approval annotations and cannot pass this check.
+func approvedFromMain(req Request, content string) (Request, bool) {
+	if req.Metadata.UID == "" || content == "" || content != renderTeamEntity(req) {
+		return Request{}, false
+	}
+	var team struct {
+		Metadata struct {
+			Name        string            `yaml:"name"`
+			Description string            `yaml:"description"`
+			Annotations map[string]string `yaml:"annotations"`
+		} `yaml:"metadata"`
+		Spec struct {
+			Profile struct {
+				DisplayName string `yaml:"displayName"`
+			} `yaml:"profile"`
+			Parent string `yaml:"parent"`
+		} `yaml:"spec"`
+	}
+	if err := yaml.Unmarshal([]byte(content), &team); err != nil {
+		return Request{}, false
+	}
+	a := team.Metadata.Annotations
+	for _, key := range []string{"onboarding-request-uid", "onboarding-environment", "onboarding-location", "onboarding-namespace", "onboarding-keyvault", "onboarding-storage-account"} {
+		if _, ok := a["teknologi.io/"+key]; !ok {
+			return Request{}, false
+		}
+	}
+	ns, e1 := strconv.ParseBool(a["teknologi.io/onboarding-namespace"])
+	kv, e2 := strconv.ParseBool(a["teknologi.io/onboarding-keyvault"])
+	sa, e3 := strconv.ParseBool(a["teknologi.io/onboarding-storage-account"])
+	if e1 != nil || e2 != nil || e3 != nil {
+		return Request{}, false
+	}
+	approved := Request{}
+	approved.Metadata = req.Metadata
+	approved.Spec.AppName = team.Metadata.Name
+	approved.Spec.BusinessUnit = team.Spec.Parent
+	approved.Spec.Description = team.Metadata.Description
+	approved.Spec.DisplayName = team.Spec.Profile.DisplayName
+	approved.Spec.Environment = a["teknologi.io/onboarding-environment"]
+	approved.Spec.Location = a["teknologi.io/onboarding-location"]
+	approved.Spec.Resources = Resources{Namespace: ns, KeyVault: kv, StorageAccount: sa}
+	return approved, true
 }
 
 // workflowControl is Kratix's native pipeline-suspend/retry contract: a pipeline
@@ -157,8 +200,23 @@ func writeWorkflowControl(wc workflowControl) {
 
 // writeXROutputs writes Crossplane XR manifests to /kratix/output. The Kratix work-writer
 // pushes these to the ORCHESTRATION repo, and ArgoCD deploys them to the workload cluster
-// where Crossplane provisions the actual Azure resources — no in-cluster k8s API calls needed.
+// where Crossplane provisions the actual Azure resources. Azure name resolution
+// reads hub reservations through the in-cluster Kubernetes API first.
 func writeXROutputs(req Request) error {
+	var vaultName, saName string
+	var err error
+	if req.Spec.Resources.KeyVault {
+		vaultName, err = resolveVaultName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+		if err != nil {
+			return fmt.Errorf("resolve Key Vault name: %w", err)
+		}
+	}
+	if req.Spec.Resources.StorageAccount {
+		saName, err = resolveStorageName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+		if err != nil {
+			return fmt.Errorf("resolve Storage Account name: %w", err)
+		}
+	}
 	if err := os.MkdirAll("/kratix/output", 0755); err != nil {
 		return fmt.Errorf("mkdir /kratix/output: %w", err)
 	}
@@ -177,24 +235,26 @@ func writeXROutputs(req Request) error {
 		if err := writeYAML("/kratix/output/xnamespace.yaml", buildXNamespace(req)); err != nil {
 			return err
 		}
+		if err := writeYAML("/kratix/output/networkpolicy.yaml", buildPrivateNetworkPolicy(req)); err != nil {
+			return err
+		}
 		log.Printf("Wrote XNamespace %s-%s", req.Spec.AppName, req.Spec.Environment)
 	}
 
 	// XKeyVault — Azure KeyVault in the team's resource group.
 	if req.Spec.Resources.KeyVault {
 		tenantID := requireEnv("AZURE_TENANT_ID")
-		if err := writeYAML("/kratix/output/xkeyvault.yaml", buildXKeyVault(req, rgName, tenantID)); err != nil {
+		if err := writeYAML("/kratix/output/xkeyvault.yaml", buildXKeyVault(req, rgName, tenantID, vaultName)); err != nil {
 			return err
 		}
-		log.Printf("Wrote XKeyVault kv-%s-%s", req.Spec.AppName, req.Spec.Environment)
+		log.Printf("Wrote XKeyVault kv-%s-%s (Azure name: %s)", req.Spec.AppName, req.Spec.Environment, vaultName)
 	}
 
 	// XStorageAccount — Azure Storage Account in the team's resource group.
 	if req.Spec.Resources.StorageAccount {
-		if err := writeYAML("/kratix/output/xstorageaccount.yaml", buildXStorageAccount(req, rgName)); err != nil {
+		if err := writeYAML("/kratix/output/xstorageaccount.yaml", buildXStorageAccount(req, rgName, saName)); err != nil {
 			return err
 		}
-		saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
 		log.Printf("Wrote XStorageAccount sa-%s-%s (Azure name: %s)", req.Spec.AppName, req.Spec.Environment, saName)
 	}
 
@@ -207,12 +267,24 @@ func resourceGroupName(appName, env string) string {
 	return fmt.Sprintf("teknologi-eur1-%s-%s-rg", env, appName)
 }
 
-// computeStorageAccountName mirrors the logic in the standalone storage-account promise.
-// Azure rules: 3-24 chars, lowercase alphanumeric only.
+// computeStorageAccountName is the legacy naming rule used only to locate
+// an existing request's UID reservation.
 func computeStorageAccountName(appName, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	clean := func(s string) string { return re.ReplaceAllString(strings.ToLower(s), "") }
 	name := "tek" + clean(appName) + clean(env) + "sa"
+	if len(name) > 24 {
+		name = name[:24]
+	}
+	return name
+}
+
+// computeVaultName is the legacy naming rule used only to locate
+// an existing request's UID reservation.
+func computeVaultName(appName, env string) string {
+	re := regexp.MustCompile(`[^a-z0-9]`)
+	clean := func(s string) string { return re.ReplaceAllString(strings.ToLower(s), "") }
+	name := "kv" + clean(appName) + clean(env)
 	if len(name) > 24 {
 		name = name[:24]
 	}
@@ -254,7 +326,31 @@ func buildXNamespace(req Request) map[string]interface{} {
 	}
 }
 
-func buildXKeyVault(req Request, rgName, tenantID string) map[string]interface{} {
+func buildPrivateNetworkPolicy(req Request) map[string]interface{} {
+	nsName := fmt.Sprintf("%s-%s", req.Spec.AppName, req.Spec.Environment)
+	return map[string]interface{}{
+		"apiVersion": "networking.k8s.io/v1",
+		"kind":       "NetworkPolicy",
+		"metadata": map[string]interface{}{
+			"name":      "private-ingress",
+			"namespace": nsName,
+			"annotations": map[string]string{
+				"argocd.argoproj.io/sync-wave": "3",
+			},
+		},
+		"spec": map[string]interface{}{
+			"podSelector": map[string]interface{}{},
+			"policyTypes": []string{"Ingress"},
+			"ingress": []interface{}{
+				map[string]interface{}{
+					"from": []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{}}},
+				},
+			},
+		},
+	}
+}
+
+func buildXKeyVault(req Request, rgName, tenantID, vaultName string) map[string]interface{} {
 	return map[string]interface{}{
 		"apiVersion": "platform.teknologi.io/v1alpha1",
 		"kind":       "XKeyVault",
@@ -270,12 +366,12 @@ func buildXKeyVault(req Request, rgName, tenantID string) map[string]interface{}
 			"environment":       req.Spec.Environment,
 			"location":          req.Spec.Location,
 			"resourceGroupName": rgName,
+			"vaultName":         vaultName,
 		},
 	}
 }
 
-func buildXStorageAccount(req Request, rgName string) map[string]interface{} {
-	saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
+func buildXStorageAccount(req Request, rgName, saName string) map[string]interface{} {
 	return map[string]interface{}{
 		"apiVersion": "platform.teknologi.io/v1alpha1",
 		"kind":       "XStorageAccount",
