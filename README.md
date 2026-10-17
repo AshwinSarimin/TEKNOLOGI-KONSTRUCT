@@ -439,6 +439,12 @@ kubectl --context k3d-k3d-teknologi-hub-cluster -n kratix-workloads \
 
 The five Promise pipelines reserve XR names and their Kubernetes or Azure targets
 in `kratix-workloads` ConfigMaps before publishing manifests or running Terraform.
+New Azure Key Vault and Storage Account names use a ten-character digest of the
+exact application name and environment, so names such as `a-b` and `ab` resolve
+to distinct Azure targets. An existing request keeps its earlier Azure name
+while its matching request-UID reservation remains. XR names and Terraform
+state keys retain their existing formats. If name resolution fails, inspect
+the configure Job's reservation lookup and the request UID before retrying.
 Inspect the reservations for a request UID with:
 
 ```bash

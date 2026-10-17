@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -199,8 +200,23 @@ func writeWorkflowControl(wc workflowControl) {
 
 // writeXROutputs writes Crossplane XR manifests to /kratix/output. The Kratix work-writer
 // pushes these to the ORCHESTRATION repo, and ArgoCD deploys them to the workload cluster
-// where Crossplane provisions the actual Azure resources — no in-cluster k8s API calls needed.
+// where Crossplane provisions the actual Azure resources. Azure name resolution
+// reads hub reservations through the in-cluster Kubernetes API first.
 func writeXROutputs(req Request) error {
+	var vaultName, saName string
+	var err error
+	if req.Spec.Resources.KeyVault {
+		vaultName, err = resolveVaultName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+		if err != nil {
+			return fmt.Errorf("resolve Key Vault name: %w", err)
+		}
+	}
+	if req.Spec.Resources.StorageAccount {
+		saName, err = resolveStorageName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+		if err != nil {
+			return fmt.Errorf("resolve Storage Account name: %w", err)
+		}
+	}
 	if err := os.MkdirAll("/kratix/output", 0755); err != nil {
 		return fmt.Errorf("mkdir /kratix/output: %w", err)
 	}
@@ -225,19 +241,17 @@ func writeXROutputs(req Request) error {
 	// XKeyVault — Azure KeyVault in the team's resource group.
 	if req.Spec.Resources.KeyVault {
 		tenantID := requireEnv("AZURE_TENANT_ID")
-		if err := writeYAML("/kratix/output/xkeyvault.yaml", buildXKeyVault(req, rgName, tenantID)); err != nil {
+		if err := writeYAML("/kratix/output/xkeyvault.yaml", buildXKeyVault(req, rgName, tenantID, vaultName)); err != nil {
 			return err
 		}
-		vaultName := computeVaultName(req.Spec.AppName, req.Spec.Environment)
 		log.Printf("Wrote XKeyVault kv-%s-%s (Azure name: %s)", req.Spec.AppName, req.Spec.Environment, vaultName)
 	}
 
 	// XStorageAccount — Azure Storage Account in the team's resource group.
 	if req.Spec.Resources.StorageAccount {
-		if err := writeYAML("/kratix/output/xstorageaccount.yaml", buildXStorageAccount(req, rgName)); err != nil {
+		if err := writeYAML("/kratix/output/xstorageaccount.yaml", buildXStorageAccount(req, rgName, saName)); err != nil {
 			return err
 		}
-		saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
 		log.Printf("Wrote XStorageAccount sa-%s-%s (Azure name: %s)", req.Spec.AppName, req.Spec.Environment, saName)
 	}
 
@@ -250,8 +264,8 @@ func resourceGroupName(appName, env string) string {
 	return fmt.Sprintf("teknologi-eur1-%s-%s-rg", env, appName)
 }
 
-// computeStorageAccountName mirrors the logic in the standalone storage-account promise.
-// Azure rules: 3-24 chars, lowercase alphanumeric only.
+// computeStorageAccountName is the legacy naming rule used only to locate
+// an existing request's UID reservation.
 func computeStorageAccountName(appName, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	clean := func(s string) string { return re.ReplaceAllString(strings.ToLower(s), "") }
@@ -262,8 +276,8 @@ func computeStorageAccountName(appName, env string) string {
 	return name
 }
 
-// computeVaultName mirrors the logic in the standalone keyvault promise.
-// Azure rules: 3-24 chars, alphanumeric only, must start with a letter.
+// computeVaultName is the legacy naming rule used only to locate
+// an existing request's UID reservation.
 func computeVaultName(appName, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	clean := func(s string) string { return re.ReplaceAllString(strings.ToLower(s), "") }
@@ -309,7 +323,7 @@ func buildXNamespace(req Request) map[string]interface{} {
 	}
 }
 
-func buildXKeyVault(req Request, rgName, tenantID string) map[string]interface{} {
+func buildXKeyVault(req Request, rgName, tenantID, vaultName string) map[string]interface{} {
 	return map[string]interface{}{
 		"apiVersion": "platform.teknologi.io/v1alpha1",
 		"kind":       "XKeyVault",
@@ -325,13 +339,12 @@ func buildXKeyVault(req Request, rgName, tenantID string) map[string]interface{}
 			"environment":       req.Spec.Environment,
 			"location":          req.Spec.Location,
 			"resourceGroupName": rgName,
-			"vaultName":         computeVaultName(req.Spec.AppName, req.Spec.Environment),
+			"vaultName":         vaultName,
 		},
 	}
 }
 
-func buildXStorageAccount(req Request, rgName string) map[string]interface{} {
-	saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
+func buildXStorageAccount(req Request, rgName, saName string) map[string]interface{} {
 	return map[string]interface{}{
 		"apiVersion": "platform.teknologi.io/v1alpha1",
 		"kind":       "XStorageAccount",

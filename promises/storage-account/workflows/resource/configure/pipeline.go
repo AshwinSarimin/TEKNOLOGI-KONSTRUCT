@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,6 +19,7 @@ type Request struct {
 	Metadata   struct {
 		Name      string `yaml:"name"`
 		Namespace string `yaml:"namespace"`
+		UID       string `yaml:"uid"`
 	} `yaml:"metadata"`
 	Spec struct {
 		AppName           string `yaml:"appName"`
@@ -57,7 +59,10 @@ func main() {
 		log.Fatalf("Failed to parse request: %v", err)
 	}
 
-	saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
+	saName, err := resolveStorageName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+	if err != nil {
+		log.Fatalf("Failed to resolve Storage Account name: %v", err)
+	}
 	log.Printf("Processing StorageAccountRequest: team=%s env=%s saName=%s", req.Spec.AppName, req.Spec.Environment, saName)
 
 	if err := writeXStorageAccount(req, saName); err != nil {
@@ -71,9 +76,8 @@ func main() {
 	log.Println("Pipeline completed successfully")
 }
 
-// computeStorageAccountName derives a valid Azure storage account name.
-// Azure rules: 3-24 chars, lowercase alphanumeric only.
-// Pattern: tek + team + env + sa — e.g. tekappadevsa (trimmed to 24).
+// computeStorageAccountName is the legacy naming rule used only to locate
+// an existing request's UID reservation.
 func computeStorageAccountName(team, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	team = re.ReplaceAllString(strings.ToLower(team), "")

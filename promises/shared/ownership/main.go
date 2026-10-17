@@ -238,7 +238,55 @@ func requestOwner(raw []byte) (owner, resource, error) {
 	return o, req, nil
 }
 
-func targetsForRequest(raw []byte, outputs map[string][]byte) ([]string, error) {
+type claimGet func(context.Context, string) (int, []byte, error)
+
+func storageCandidate(appName, env string) string {
+	clean := regexp.MustCompile(`[^a-z0-9]`).ReplaceAllString
+	stem := clean(strings.ToLower(appName), "")
+	if len(stem) > 6 {
+		stem = stem[:6]
+	}
+	sum := sha256.Sum256([]byte("v2\x00storage\x00" + appName + "\x00" + env))
+	return "tek" + stem + clean(strings.ToLower(env), "") + fmt.Sprintf("%x", sum[:5]) + "sa"
+}
+
+func terraformStorageName(ctx context.Context, req resource, get claimGet) (string, error) {
+	if req.Metadata.UID == "" {
+		return "", errors.New("Terraform request has no metadata.uid")
+	}
+	if get == nil {
+		return "", errors.New("Terraform claim getter is required")
+	}
+	clean := regexp.MustCompile(`[^a-z0-9]`).ReplaceAllString
+	legacy := "tek" + clean(strings.ToLower(req.Spec.AppName), "") + clean(strings.ToLower(req.Spec.Environment), "") + "sa"
+	if len(legacy) > 24 {
+		legacy = legacy[:24]
+	}
+	target := "azure-storage/" + legacy
+	status, body, err := get(ctx, reservationName(target))
+	if err != nil {
+		return "", err
+	}
+	if status == http.StatusNotFound {
+		return storageCandidate(req.Spec.AppName, req.Spec.Environment), nil
+	}
+	if status != http.StatusOK {
+		return "", fmt.Errorf("read legacy reservation %s: HTTP %d", target, status)
+	}
+	var cm configMap
+	if err := json.Unmarshal(body, &cm); err != nil {
+		return "", err
+	}
+	if cm.Data["target"] != target || cm.Data["ownerUID"] == "" {
+		return "", fmt.Errorf("invalid legacy reservation for %s", target)
+	}
+	if cm.Data["ownerUID"] == req.Metadata.UID {
+		return legacy, nil
+	}
+	return storageCandidate(req.Spec.AppName, req.Spec.Environment), nil
+}
+
+func targetsForRequest(raw []byte, outputs map[string][]byte, getters ...claimGet) ([]string, error) {
 	_, req, err := requestOwner(raw)
 	if err != nil {
 		return nil, err
@@ -248,10 +296,12 @@ func targetsForRequest(raw []byte, outputs map[string][]byte) ([]string, error) 
 		if req.Spec.AppName == "" || req.Spec.Environment == "" {
 			return nil, errors.New("Terraform request requires appName and environment")
 		}
-		clean := regexp.MustCompile(`[^a-z0-9]`).ReplaceAllString
-		name := "tek" + clean(strings.ToLower(req.Spec.AppName), "") + clean(strings.ToLower(req.Spec.Environment), "") + "sa"
-		if len(name) > 24 {
-			name = name[:24]
+		if len(getters) == 0 {
+			return nil, errors.New("Terraform claim getter is required")
+		}
+		name, err := terraformStorageName(context.Background(), req, getters[0])
+		if err != nil {
+			return nil, err
 		}
 		targets["azure-storage/"+name] = true
 		targets[fmt.Sprintf("terraform-state/storage-account-%s-%s.tfstate", req.Spec.AppName, req.Spec.Environment)] = true
@@ -345,16 +395,28 @@ func run(ctx context.Context) error {
 		}
 		outputs[file] = b
 	}
-	targets, err := targetsForRequest(raw, outputs)
-	if err != nil {
-		return err
+	var targets []string
+	if o.Kind != "StorageAccountTerraformRequest" {
+		targets, err = targetsForRequest(raw, outputs)
+		if err != nil {
+			return err
+		}
+		if len(targets) == 0 {
+			return nil
+		} // Onboarding still awaiting approval.
 	}
-	if len(targets) == 0 {
-		return nil
-	} // Onboarding still awaiting approval.
 	client, err := inClusterClient()
 	if err != nil {
 		return err
+	}
+	get := func(ctx context.Context, name string) (int, []byte, error) {
+		return client.call(ctx, http.MethodGet, reservationPath("/"+name), nil)
+	}
+	if o.Kind == "StorageAccountTerraformRequest" {
+		targets, err = targetsForRequest(raw, outputs, get)
+		if err != nil {
+			return err
+		}
 	}
 	if os.Getenv("OWNERSHIP_MODE") == "verify" {
 		if o.Kind != "StorageAccountTerraformRequest" {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -23,6 +24,7 @@ type Request struct {
 	Metadata   struct {
 		Name      string `yaml:"name"`
 		Namespace string `yaml:"namespace"`
+		UID       string `yaml:"uid"`
 	} `yaml:"metadata"`
 	Spec struct {
 		AppName           string `yaml:"appName"`
@@ -48,11 +50,14 @@ func main() {
 	log.Printf("Processing StorageAccountRequest: team=%s env=%s location=%s rg=%s",
 		req.Spec.AppName, req.Spec.Environment, req.Spec.Location, req.Spec.ResourceGroupName)
 
-	// Compute Azure storage account name (3-24 chars, lowercase alphanumeric)
-	saName := computeStorageAccountName(req.Spec.AppName, req.Spec.Environment)
+	// Preserve an owned legacy name or select the collision-resistant candidate.
+	saName, err := resolveStorageName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+	if err != nil {
+		log.Fatalf("Resolve Storage Account name: %v", err)
+	}
 	log.Printf("Storage account name: %s", saName)
 	if os.Getenv("PIPELINE_ACTION") == "destroy" {
-		if err := destroyTerraform(req, saName, terraformCommand); err != nil {
+		if err := executeWithClaim(context.Background(), req.Metadata.UID, saName, inClusterClaimGet, func() error { return destroyTerraform(req, saName, terraformCommand) }); err != nil {
 			log.Fatalf("Terraform destroy failed; request deletion remains blocked: %v", err)
 		}
 		log.Println("Terraform destroy succeeded; state blob and ownership claims remain for verified release")
@@ -65,7 +70,12 @@ func main() {
 	postSlack(slackURL, buildStartedMessage(req, saName))
 
 	// Run Terraform — synchronous, completes before we post the result
-	tfResult, tfErr := runTerraform(req, saName)
+	var tfResult *TerraformResult
+	tfErr := executeWithClaim(context.Background(), req.Metadata.UID, saName, inClusterClaimGet, func() error {
+		var err error
+		tfResult, err = runTerraform(req, saName)
+		return err
+	})
 
 	if tfErr != nil {
 		log.Printf("Terraform apply failed: %v", tfErr)
@@ -89,9 +99,8 @@ func main() {
 	log.Println("Pipeline completed successfully")
 }
 
-// computeStorageAccountName derives a valid Azure storage account name.
-// Azure rules: 3-24 chars, lowercase alphanumeric only.
-// Pattern: tek + team + env + sa — e.g. tekfeaturesdvsa (trimmed to 24).
+// computeStorageAccountName is the legacy naming rule used only to locate
+// an existing request's UID reservation.
 func computeStorageAccountName(team, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	team = re.ReplaceAllString(strings.ToLower(team), "")

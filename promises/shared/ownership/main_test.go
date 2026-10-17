@@ -188,13 +188,57 @@ func TestUnknownOutputCannotBypassGate(t *testing.T) {
 }
 
 func TestTerraformReservesStateAndCrossplaneAzureNameBeforeApply(t *testing.T) {
-	got, err := targetsForRequest(request("StorageAccountTerraformRequest", "uid-a", "first"), nil)
+	missing := func(context.Context, string) (int, []byte, error) { return 404, nil, nil }
+	got, err := targetsForRequest(request("StorageAccountTerraformRequest", "uid-a", "first"), nil, missing)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"azure-storage/tekappadevsa", "terraform-state/storage-account-app-a-dev.tfstate"}
+	want := []string{"azure-storage/tekappadev748e4bec2asa", "terraform-state/storage-account-app-a-dev.tfstate"}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("targets = %v, want %v", got, want)
+	}
+}
+
+func TestTerraformCandidateSeparatesValidNames(t *testing.T) {
+	if got := storageCandidate("a-b", "dev"); got != "tekabdev9b1eebd050sa" {
+		t.Fatalf("a-b = %q", got)
+	}
+	if got := storageCandidate("ab", "dev"); got != "tekabdeved81cd984esa" {
+		t.Fatalf("ab = %q", got)
+	}
+	if got := storageCandidate("case", "dev"); got != "tekcasedev3b876f687csa" {
+		t.Fatalf("case = %q", got)
+	}
+	if got := storageCandidate("Case", "dev"); got != "tekcasedev333b23ad09sa" {
+		t.Fatalf("Case = %q", got)
+	}
+}
+
+func TestTerraformRetainsOnlyOwnedLegacyTarget(t *testing.T) {
+	raw := request("StorageAccountTerraformRequest", "uid-a", "first")
+	for _, tc := range []struct{ owner, want string }{
+		{"uid-a", "azure-storage/tekappadevsa"},
+		{"uid-b", "azure-storage/tekappadev748e4bec2asa"},
+	} {
+		get := func(_ context.Context, name string) (int, []byte, error) {
+			if name != reservationName("azure-storage/tekappadevsa") {
+				t.Fatalf("unexpected claim %q", name)
+			}
+			return 200, []byte(fmt.Sprintf(`{"data":{"target":"azure-storage/tekappadevsa","ownerUID":%q}}`, tc.owner)), nil
+		}
+		got, err := targetsForRequest(raw, nil, get)
+		if err != nil || len(got) != 2 || got[0] != tc.want {
+			t.Fatalf("owner %q: targets=%v err=%v", tc.owner, got, err)
+		}
+	}
+}
+
+func TestTerraformMalformedLegacyClaimFailsClosed(t *testing.T) {
+	get := func(context.Context, string) (int, []byte, error) {
+		return 200, []byte(`{"data":{"target":"azure-storage/wrong","ownerUID":"uid-a"}}`), nil
+	}
+	if _, err := targetsForRequest(request("StorageAccountTerraformRequest", "uid-a", "first"), nil, get); err == nil {
+		t.Fatal("malformed claim allowed target selection")
 	}
 }
 
@@ -202,14 +246,15 @@ func TestTerraformAndCrossplaneCannotPublishSameAzureAccount(t *testing.T) {
 	client, _, closeServer := newTestClient(t)
 	defer closeServer()
 	tfRaw := request("StorageAccountTerraformRequest", "uid-tf", "terraform")
-	tfTargets, err := targetsForRequest(tfRaw, nil)
+	missing := func(context.Context, string) (int, []byte, error) { return 404, nil, nil }
+	tfTargets, err := targetsForRequest(tfRaw, nil, missing)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := reserve(context.Background(), client, owner{UID: "uid-tf", Kind: "StorageAccountTerraformRequest", Name: "terraform", Namespace: namespace}, tfTargets); err != nil {
 		t.Fatal(err)
 	}
-	xr := map[string][]byte{"sa.yaml": []byte("kind: XStorageAccount\nmetadata:\n  name: sa-app-a-dev\nspec:\n  storageAccountName: tekappadevsa\n")}
+	xr := map[string][]byte{"sa.yaml": []byte("kind: XStorageAccount\nmetadata:\n  name: sa-app-a-dev\nspec:\n  storageAccountName: tekappadev748e4bec2asa\n")}
 	xrTargets, err := targetsForRequest(request("StorageAccountRequest", "uid-xr", "crossplane"), xr)
 	if err != nil {
 		t.Fatal(err)

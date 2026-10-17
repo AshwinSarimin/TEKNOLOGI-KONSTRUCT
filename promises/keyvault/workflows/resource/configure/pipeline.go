@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,6 +19,7 @@ type Request struct {
 	Metadata   struct {
 		Name      string `yaml:"name"`
 		Namespace string `yaml:"namespace"`
+		UID       string `yaml:"uid"`
 	} `yaml:"metadata"`
 	Spec struct {
 		AppName           string `yaml:"appName"`
@@ -58,7 +60,10 @@ func main() {
 		log.Fatalf("Failed to parse request: %v", err)
 	}
 
-	vaultName := computeVaultName(req.Spec.AppName, req.Spec.Environment)
+	vaultName, err := resolveVaultName(context.Background(), req.Spec.AppName, req.Spec.Environment, req.Metadata.UID, inClusterClaimGet)
+	if err != nil {
+		log.Fatalf("Failed to resolve Key Vault name: %v", err)
+	}
 	log.Printf("Processing KeyVaultRequest: team=%s env=%s location=%s vaultName=%s",
 		req.Spec.AppName, req.Spec.Environment, req.Spec.Location, vaultName)
 
@@ -73,10 +78,8 @@ func main() {
 	log.Println("Pipeline completed successfully")
 }
 
-// computeVaultName derives a valid Azure Key Vault name.
-// Azure rules: 3-24 chars, alphanumeric only, must start with a letter.
-// Pattern: kv + team + env — e.g. kvappadev (trimmed to 24). Mirrors
-// computeStorageAccountName in the storage-account promise's pipeline.
+// computeVaultName is the legacy naming rule used only to locate an
+// existing request's UID reservation.
 func computeVaultName(team, env string) string {
 	re := regexp.MustCompile(`[^a-z0-9]`)
 	team = re.ReplaceAllString(strings.ToLower(team), "")
