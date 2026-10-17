@@ -24,7 +24,7 @@ spec:
       - name: acr-credentials
       containers:
       - name: notify-watcher
-        image: teknologieur1acr.azurecr.io/kratix-notify@sha256:83954e9fe7a8fd35fb07e425fa89f98065571c3bdf3df3a8bf3026545f870ae6
+        image: teknologieur1acr.azurecr.io/kratix-notify@sha256:9045a1c5f20903e9be3394c9574dfa1d3490de6d3a7918e8d8ef26900aa37155
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

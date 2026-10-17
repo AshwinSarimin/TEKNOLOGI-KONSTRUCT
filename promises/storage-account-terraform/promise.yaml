@@ -65,10 +65,10 @@ spec:
           - name: acr-credentials
           containers:
           - name: ownership-gate
-            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:0b68099bd52be11ff86a509d0d1e731e0c7db434577695416d3981b402e1dcf5
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:7278d1ed4b7fc14deb212bfa4d335ff5526d8d281d3c44d0806b3152c8fe9a3b
             imagePullPolicy: Always
           - name: configure-tf
-            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform@sha256:df49cb7bbf8b6efec5ed00d03b061261c93e5371ba642fba910eac7a9161d7b0
+            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform@sha256:9d2265752133ac8ea14b90c7d94b0116f66da0078e0004039ba1486804ffb2fe
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -133,13 +133,13 @@ spec:
           - name: acr-credentials
           containers:
           - name: ownership-gate
-            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:0b68099bd52be11ff86a509d0d1e731e0c7db434577695416d3981b402e1dcf5
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:7278d1ed4b7fc14deb212bfa4d335ff5526d8d281d3c44d0806b3152c8fe9a3b
             imagePullPolicy: Always
             env:
             - name: OWNERSHIP_MODE
               value: verify
           - name: destroy-tf
-            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform@sha256:df49cb7bbf8b6efec5ed00d03b061261c93e5371ba642fba910eac7a9161d7b0
+            image: teknologieur1acr.azurecr.io/kratix-storage-account-terraform@sha256:9d2265752133ac8ea14b90c7d94b0116f66da0078e0004039ba1486804ffb2fe
             imagePullPolicy: Always
             securityContext:
               allowPrivilegeEscalation: false
