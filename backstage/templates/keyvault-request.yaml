@@ -22,6 +22,8 @@ spec:
 
   parameters:
     - title: KeyVault details
+      backstage:permissions:
+        tags: [features-only]
       description: |
         The vault is created as `kv-{appName}-{environment}` inside your team's
         resource group `teknologi-eur1-{environment}-{appName}-rg` (created during
@@ -50,6 +52,8 @@ spec:
   steps:
     - id: request-keyvault
       name: Submit KeyVault request
+      backstage:permissions:
+        tags: [features-only]
       action: kratix:apply
       input:
         manifest:

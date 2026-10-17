@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func approvalRequest() Request {
 	var req Request
@@ -29,6 +32,9 @@ func TestApprovalBindsEveryProvisioningField(t *testing.T) {
 		"displayName":            func(r *Request) { r.Spec.DisplayName = "Changed" },
 		"environment":            func(r *Request) { r.Spec.Environment = "tst" },
 		"location":               func(r *Request) { r.Spec.Location = "northeurope" },
+		"productOwner":           func(r *Request) { r.Spec.ProductOwner = "user:default/alice" },
+		"engineeringManager":     func(r *Request) { r.Spec.EngineeringManager = "user:default/bob" },
+		"teamMembers":            func(r *Request) { r.Spec.TeamMembers = []string{"user:default/carol"} },
 		"disable namespace":      func(r *Request) { r.Spec.Resources.Namespace = false },
 		"enable keyvault":        func(r *Request) { r.Spec.Resources.KeyVault = true },
 		"disable storageAccount": func(r *Request) { r.Spec.Resources.StorageAccount = false },
@@ -55,6 +61,30 @@ func TestApprovalBindsEveryProvisioningField(t *testing.T) {
 				t.Fatal("opposite resource flag authorized the request")
 			}
 		})
+	}
+}
+
+func TestReviewedTeamEntityContainsUniqueSubmittedMembers(t *testing.T) {
+	req := approvalRequest()
+	req.Spec.ProductOwner = "user:default/alice"
+	req.Spec.EngineeringManager = "user:default/bob"
+	req.Spec.TeamMembers = []string{"user:default/bob", "user:default/carol"}
+	got := renderTeamEntity(req)
+	for _, member := range []string{"user:default/alice", "user:default/bob", "user:default/carol"} {
+		if !strings.Contains(got, "    - \""+member+"\"\n") {
+			t.Fatalf("reviewed group omits %s: %s", member, got)
+		}
+	}
+	if strings.Count(got, "user:default/bob") != 1 {
+		t.Fatalf("duplicate member in reviewed group: %s", got)
+	}
+	if _, ok := approvedFromMain(req, got); !ok {
+		t.Fatal("matching reviewed member list was rejected")
+	}
+	changed := req
+	changed.Spec.TeamMembers = []string{"user:default/dave"}
+	if _, ok := approvedFromMain(changed, got); ok {
+		t.Fatal("changed membership reused the old approval")
 	}
 }
 

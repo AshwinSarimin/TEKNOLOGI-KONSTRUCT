@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "6b9e3f0300f242f8616f51dd55bdc425676262a8",
+  "images": {
+    "namespace": "sha256:9cb7c731d275b952d9aa8afa32090e3afc4baeddd10e7d3e9312684a1c5a4330",
+    "keyvault": "sha256:9c0e7d73414174c8f46183a326d2f198c1244d4bcbc2f807997ce24272b9ac81",
+    "storage-account": "sha256:71c50fa14b23d557ee02041980294a1c7ef58763d910240bcba63a503086a3b7",
+    "storage-account-terraform": "sha256:df49cb7bbf8b6efec5ed00d03b061261c93e5371ba642fba910eac7a9161d7b0",
+    "team-onboarding": "sha256:b3c5011484c4f10fd289f0a17306377a95b7b783935adc5e40721095cac6383e",
+    "ownership": "sha256:0b68099bd52be11ff86a509d0d1e731e0c7db434577695416d3981b402e1dcf5",
+    "notify": "sha256:83954e9fe7a8fd35fb07e425fa89f98065571c3bdf3df3a8bf3026545f870ae6"
+  }
+}

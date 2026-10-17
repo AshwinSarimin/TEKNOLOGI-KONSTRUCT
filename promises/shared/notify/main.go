@@ -103,7 +103,8 @@ const notifiedAnnotation = "notify.platform.teknologi.io/notified"
 // arrive back-to-back (e.g. Crossplane's own status updates right at the Ready
 // transition) before either one's annotation-patch round-trips back through the
 // watch, so both would read "not yet notified" and both would fire. Keyed by
-// "<resource>/<name>"; LoadOrStore makes the check-and-claim atomic.
+// "<resource>/<UID>"; LoadOrStore makes the check-and-claim atomic and permits
+// a new resource with the same name to notify after the previous one is deleted.
 var notifying sync.Map
 
 var watchedResources = []schema.GroupVersionResource{
@@ -123,7 +124,8 @@ func runWatch(slackURL string) {
 		log.Fatalf("dynamic client: %v", err)
 	}
 
-	factory := dynamicinformer.NewDynamicSharedInformerFactory(dynClient, 10*time.Hour)
+	// Periodic resync retries transient Slack or annotation-patch failures.
+	factory := dynamicinformer.NewDynamicSharedInformerFactory(dynClient, time.Minute)
 	for _, gvr := range watchedResources {
 		gvr := gvr
 		informer := factory.ForResource(gvr).Informer()
@@ -160,7 +162,7 @@ func handleXR(dynClient dynamic.Interface, gvr schema.GroupVersionResource, slac
 	name := u.GetName()
 	resourceType := strings.TrimPrefix(u.GetKind(), "X")
 
-	key := gvr.Resource + "/" + name
+	key := gvr.Resource + "/" + string(u.GetUID())
 	if _, alreadyClaimed := notifying.LoadOrStore(key, true); alreadyClaimed {
 		return
 	}
@@ -169,27 +171,26 @@ func handleXR(dynClient dynamic.Interface, gvr schema.GroupVersionResource, slac
 
 	log.Printf("notify-watcher: %s/%s is Ready (elapsed: %s) — notifying", resourceType, name, elapsed)
 
-	// Record first, alert second: the Event is the durable, queryable trace of "this
-	// fired" independent of whether Slack is reachable or configured at all — best-effort,
-	// since a notification-history gap shouldn't block marking the resource as notified.
+	if slackURL == "" {
+		log.Println("SLACK_WEBHOOK_URL not set — retrying when configured")
+		notifying.Delete(key)
+		return
+	}
+	msg := buildLiveMessage(name, resourceType, elapsed.String())
+	if err := sendSlack(slackURL, msg); err != nil {
+		log.Printf("WARNING: Slack notification failed for %s/%s: %v", resourceType, name, err)
+		notifying.Delete(key)
+		return
+	}
+	log.Printf("notify-watcher: Slack notification sent for %s/%s", resourceType, name)
 	if err := recordNotificationEvent(resourceType, name, elapsed); err != nil {
 		log.Printf("WARNING: failed to record notification Event for %s/%s: %v", resourceType, name, err)
-	}
-
-	if slackURL == "" {
-		log.Println("SLACK_WEBHOOK_URL not set — skipping notification")
-	} else {
-		msg := buildLiveMessage(name, resourceType, elapsed.String())
-		if err := sendSlack(slackURL, msg); err != nil {
-			log.Printf("WARNING: Slack notification failed for %s/%s: %v", resourceType, name, err)
-		} else {
-			log.Printf("notify-watcher: Slack notification sent for %s/%s", resourceType, name)
-		}
 	}
 
 	patch := []byte(fmt.Sprintf(`{"metadata":{"annotations":{%q:"true"}}}`, notifiedAnnotation))
 	if _, err := dynClient.Resource(gvr).Patch(context.Background(), name, types.MergePatchType, patch, metav1.PatchOptions{}); err != nil {
 		log.Printf("WARNING: failed to mark %s/%s as notified (may re-notify on restart): %v", resourceType, name, err)
+		notifying.Delete(key)
 	}
 }
 
@@ -295,7 +296,8 @@ func sendSlack(webhookURL string, payload slackPayload) error {
 	if err != nil {
 		return fmt.Errorf("marshal payload: %w", err)
 	}
-	resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(body))
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Post(webhookURL, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("HTTP POST: %w", err)
 	}
@@ -308,10 +310,8 @@ func sendSlack(webhookURL string, payload slackPayload) error {
 
 // --- Durable notification record (runs on the workload cluster) ---
 
-// recordNotificationEvent creates a core v1 Event on the workload cluster recording
-// that a "resource live" notification fired — a durable, queryable (`kubectl get
-// events`) trace independent of Slack, which can be down, rate-limited, or simply
-// not yet configured (SLACK_WEBHOOK_URL is optional).
+// recordNotificationEvent creates a core v1 Event after Slack accepts a
+// "resource live" notification, leaving a queryable (`kubectl get events`) trace.
 func recordNotificationEvent(resourceType, resourceName string, elapsed time.Duration) error {
 	client, token, err := buildK8sClient()
 	if err != nil {

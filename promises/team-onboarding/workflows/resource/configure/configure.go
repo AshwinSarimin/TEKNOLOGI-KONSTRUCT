@@ -117,7 +117,27 @@ func renderTeamEntity(req Request) string {
 	fmt.Fprintf(&b, "    displayName: %q\n", req.Spec.DisplayName)
 	fmt.Fprintf(&b, "  parent: %s\n", req.Spec.BusinessUnit)
 	fmt.Fprintf(&b, "  children: []\n")
+	members := uniqueTeamMembers(req)
+	if len(members) > 0 {
+		fmt.Fprintf(&b, "  members:\n")
+		for _, member := range members {
+			fmt.Fprintf(&b, "    - %q\n", member)
+		}
+	}
 	return b.String()
+}
+
+func uniqueTeamMembers(req Request) []string {
+	seen := make(map[string]bool)
+	var members []string
+	for _, member := range append([]string{req.Spec.ProductOwner, req.Spec.EngineeringManager}, req.Spec.TeamMembers...) {
+		if member == "" || seen[member] {
+			continue
+		}
+		seen[member] = true
+		members = append(members, member)
+	}
+	return members
 }
 
 // A request mutation gets a new approval branch. Generation also lets a later

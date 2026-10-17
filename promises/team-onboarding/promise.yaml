@@ -181,7 +181,7 @@ spec:
           - name: acr-credentials
           containers:
           - name: configure-team-onboarding
-            image: teknologieur1acr.azurecr.io/kratix-team-onboarding:latest
+            image: teknologieur1acr.azurecr.io/kratix-team-onboarding@sha256:b3c5011484c4f10fd289f0a17306377a95b7b783935adc5e40721095cac6383e
             imagePullPolicy: Always
             securityContext:
               allowPrivilegeEscalation: false
@@ -226,7 +226,7 @@ spec:
                   name: github-app
                   key: privateKey
           - name: notify
-            image: teknologieur1acr.azurecr.io/kratix-notify:latest
+            image: teknologieur1acr.azurecr.io/kratix-notify@sha256:83954e9fe7a8fd35fb07e425fa89f98065571c3bdf3df3a8bf3026545f870ae6
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -266,7 +266,7 @@ spec:
           - name: acr-credentials
           containers:
           - name: pr-watcher
-            image: teknologieur1acr.azurecr.io/kratix-team-onboarding:latest
+            image: teknologieur1acr.azurecr.io/kratix-team-onboarding@sha256:b3c5011484c4f10fd289f0a17306377a95b7b783935adc5e40721095cac6383e
             imagePullPolicy: Always
             securityContext:
               allowPrivilegeEscalation: false
@@ -316,5 +316,5 @@ spec:
                   name: platform-config
                   key: azureTenantId
           - name: ownership-gate
-            image: teknologieur1acr.azurecr.io/kratix-ownership:latest
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:0b68099bd52be11ff86a509d0d1e731e0c7db434577695416d3981b402e1dcf5
             imagePullPolicy: Always

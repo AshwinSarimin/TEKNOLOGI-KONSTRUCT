@@ -187,7 +187,7 @@ spec:
           - name: acr-credentials
           containers:
           - name: configure-keyvault
-            image: teknologieur1acr.azurecr.io/kratix-keyvault:latest
+            image: teknologieur1acr.azurecr.io/kratix-keyvault@sha256:9c0e7d73414174c8f46183a326d2f198c1244d4bcbc2f807997ce24272b9ac81
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -204,12 +204,12 @@ spec:
                   name: platform-config
                   key: azureTenantId
           - name: ownership-gate
-            image: teknologieur1acr.azurecr.io/kratix-ownership:latest
+            image: teknologieur1acr.azurecr.io/kratix-ownership@sha256:0b68099bd52be11ff86a509d0d1e731e0c7db434577695416d3981b402e1dcf5
             imagePullPolicy: Always
           # Stage 1: posts "request accepted" to Slack. "Resource live" is handled
           # separately by the persistent notify-watcher Deployment on the workload cluster.
           - name: notify
-            image: teknologieur1acr.azurecr.io/kratix-notify:latest
+            image: teknologieur1acr.azurecr.io/kratix-notify@sha256:83954e9fe7a8fd35fb07e425fa89f98065571c3bdf3df3a8bf3026545f870ae6
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:

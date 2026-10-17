@@ -366,6 +366,23 @@ az keyvault secret set --vault-name "$KV_NAME" --name "platform-rest-api-keys" \
 rm "$REST_API_KEYS_FILE"
 ```
 
+### Releasing Promise pipeline images
+
+Promise pipelines and the notify watcher use image digests recorded in
+`release/promise-images.json`. A source change does not deploy a new pipeline
+binary until its digest is pinned in Git:
+
+1. Push the source commit and wait for **Build and push Kratix Promises to ACR**
+   to succeed at that exact commit. CI publishes commit-tagged images only.
+2. Run `python3 scripts/pin_promise_images.py --commit <full-40-character-SHA>`.
+   The script reads each commit-tagged digest from ACR and updates every Promise
+   manifest, the notify-watcher Deployment, and the lock file.
+3. Review the image changes, commit and push them, then verify that ArgoCD
+   synced that pin commit and the running Pod image IDs match the recorded
+   digests. Keep the previous pins if the image build fails.
+
+The pin command requires Azure CLI access to the `Teknologi` subscription.
+
 ### REST API caller credentials and request ownership
 
 For an existing installation, create `platform-rest-api-keys` using the commands

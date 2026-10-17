@@ -235,6 +235,9 @@ func writeXROutputs(req Request) error {
 		if err := writeYAML("/kratix/output/xnamespace.yaml", buildXNamespace(req)); err != nil {
 			return err
 		}
+		if err := writeYAML("/kratix/output/networkpolicy.yaml", buildPrivateNetworkPolicy(req)); err != nil {
+			return err
+		}
 		log.Printf("Wrote XNamespace %s-%s", req.Spec.AppName, req.Spec.Environment)
 	}
 
@@ -319,6 +322,30 @@ func buildXNamespace(req Request) map[string]interface{} {
 			"namespaceName":     nsName,
 			"environment":       req.Spec.Environment,
 			"networkVisibility": "private",
+		},
+	}
+}
+
+func buildPrivateNetworkPolicy(req Request) map[string]interface{} {
+	nsName := fmt.Sprintf("%s-%s", req.Spec.AppName, req.Spec.Environment)
+	return map[string]interface{}{
+		"apiVersion": "networking.k8s.io/v1",
+		"kind":       "NetworkPolicy",
+		"metadata": map[string]interface{}{
+			"name":      "private-ingress",
+			"namespace": nsName,
+			"annotations": map[string]string{
+				"argocd.argoproj.io/sync-wave": "3",
+			},
+		},
+		"spec": map[string]interface{}{
+			"podSelector": map[string]interface{}{},
+			"policyTypes": []string{"Ingress"},
+			"ingress": []interface{}{
+				map[string]interface{}{
+					"from": []interface{}{map[string]interface{}{"podSelector": map[string]interface{}{}}},
+				},
+			},
 		},
 	}
 }

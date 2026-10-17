@@ -32,12 +32,20 @@ backstage:
     runAsNonRoot: true
     runAsUser: 1000
     runAsGroup: 1000
+    fsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
   containerSecurityContext:
     allowPrivilegeEscalation: false
     capabilities:
       drop: [ALL]
+  extraVolumes:
+    - name: backstage-data
+      persistentVolumeClaim:
+        claimName: backstage-data
+  extraVolumeMounts:
+    - name: backstage-data
+      mountPath: /app/data
   # Inline app config — chart auto-generates a ConfigMap and mounts it
   appConfig:
     app:
@@ -61,7 +69,8 @@ backstage:
         port: 7007
       database:
         client: better-sqlite3
-        connection: ':memory:'
+        connection:
+          directory: /app/data
       cors:
         origin: https://backstage.konstruct.teknologik8s.nl
         methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
@@ -95,8 +104,6 @@ backstage:
         # Software Templates
         - type: url
           target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/onboarding-wizard.yaml
-        - type: url
-          target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/capabilities-request.yaml
         # Flow B: individual Promise templates (keyvault/storage gated by permission policy)
         - type: url
           target: https://github.com/AshwinSarimin/TEKNOLOGI-KONSTRUCT/blob/main/backstage/templates/namespace-request.yaml

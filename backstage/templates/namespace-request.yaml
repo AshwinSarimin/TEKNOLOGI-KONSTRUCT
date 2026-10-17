@@ -33,6 +33,7 @@ spec:
         networkVisibility:
           title: Network Visibility
           type: string
+          description: Private permits ingress only from pods in this namespace; public adds no namespace ingress policy. External access requires a separate route.
           default: private
           enum: [private, public]
 

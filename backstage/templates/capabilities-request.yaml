@@ -89,8 +89,8 @@ spec:
             - private
             - public
           enumNames:
-            - Private (cluster-internal only)
-            - Public (externally routable via Cloudflare)
+            - Private (ingress from this namespace only)
+            - Public (no namespace ingress restriction; external route is separate)
           ui:if: 'parameters.requestNamespace'
 
         # ── KeyVault ──────────────────────────────────────────────────────────
