@@ -1,6 +1,7 @@
 import importlib.util
 import pathlib
 import re
+import subprocess
 import unittest
 
 
@@ -41,6 +42,22 @@ class PinPromiseImagesTest(unittest.TestCase):
                 self.assertIn(name, lock["images"], relative_path)
                 self.assertEqual("@" + lock["images"][name], match.group("reference"), relative_path)
         self.assertFalse(re.search(r"kratix-[\w-]+:latest", "\n".join((ROOT / path).read_text() for path in module.MANIFESTS)))
+
+    def test_kustomize_preserves_pinned_promise_images(self):
+        module = self.load_module()
+        lock = module.read_lock(ROOT / "release" / "promise-images.json")
+        for relative_path in module.MANIFESTS:
+            if not relative_path.startswith("promises/"):
+                continue
+            directory = str((ROOT / relative_path).parent)
+            rendered = subprocess.run(
+                ["kubectl", "kustomize", directory],
+                check=True, capture_output=True, text=True,
+            ).stdout
+            for match in module.IMAGE_PATTERN.finditer((ROOT / relative_path).read_text()):
+                expected = match.group(0)
+                self.assertIn(expected, rendered, relative_path)
+            self.assertNotRegex(rendered, r"kratix-[\w-]+:latest")
 
     def test_promise_ci_does_not_publish_mutable_latest_tags(self):
         workflow = (ROOT / ".github" / "workflows" / "build-kratix-promises.yml").read_text()
