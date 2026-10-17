@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -164,6 +165,29 @@ func TestTargetsCoverXRAndPhysicalResources(t *testing.T) {
 	want := []string{"azure-keyvault/kvappadev", "azure-rg/teknologi-eur1-dev-app-a-rg", "azure-storage/tekappadevsa", "k8s-namespace/app-a-dev", "xr/XKeyVault/kv-app-a-dev", "xr/XNamespace/app-a-dev", "xr/XResourceGroup/teknologi-eur1-dev-app-a-rg", "xr/XStorageAccount/sa-app-a-dev"}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("targets = %v, want %v", got, want)
+	}
+}
+
+func TestPrivatePolicyRequiresMatchingNamespaceAndIsReserved(t *testing.T) {
+	policy := []byte("kind: NetworkPolicy\nmetadata:\n  name: private-ingress\n  namespace: app-a-dev\n")
+	outputs := map[string][]byte{
+		"ns.yaml":     []byte("kind: XNamespace\nmetadata:\n  name: app-a-dev\nspec:\n  namespaceName: app-a-dev\n"),
+		"policy.yaml": policy,
+	}
+	targets, err := targetsForRequest(request("NamespaceRequest", "uid-a", "first"), outputs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(targets, "k8s-networkpolicy/app-a-dev/private-ingress") {
+		t.Fatalf("policy target missing: %v", targets)
+	}
+	delete(outputs, "ns.yaml")
+	if _, err := targetsForRequest(request("NamespaceRequest", "uid-a", "first"), outputs); err == nil {
+		t.Fatal("orphan policy bypassed namespace ownership")
+	}
+	outputs["ns.yaml"] = []byte("kind: XNamespace\nmetadata:\n  name: other-dev\nspec:\n  namespaceName: other-dev\n")
+	if _, err := targetsForRequest(request("NamespaceRequest", "uid-a", "first"), outputs); err == nil {
+		t.Fatal("policy in a foreign namespace bypassed ownership")
 	}
 }
 

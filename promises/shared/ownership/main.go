@@ -309,6 +309,7 @@ func targetsForRequest(raw []byte, outputs map[string][]byte, getters ...claimGe
 		if len(outputs) == 0 && req.Kind != "TeamOnboardingRequest" {
 			return nil, fmt.Errorf("%s produced no XR output", req.Kind)
 		}
+		policyNamespaces := map[string]bool{}
 		for file, raw := range outputs {
 			var out resource
 			if err := yaml.Unmarshal(raw, &out); err != nil {
@@ -336,8 +337,20 @@ func targetsForRequest(raw []byte, outputs map[string][]byte, getters ...claimGe
 					return nil, fmt.Errorf("output %s has no storageAccountName", file)
 				}
 				targets["azure-storage/"+out.Spec.StorageAccountName] = true
+			case "NetworkPolicy":
+				if out.Metadata.Name != "private-ingress" || out.Metadata.Namespace == "" {
+					return nil, fmt.Errorf("unexpected NetworkPolicy target in %s", file)
+				}
+				delete(targets, "xr/NetworkPolicy/"+out.Metadata.Name)
+				policyNamespaces[out.Metadata.Namespace] = true
+				targets["k8s-networkpolicy/"+out.Metadata.Namespace+"/"+out.Metadata.Name] = true
 			default:
 				return nil, fmt.Errorf("unsupported output kind %q in %s", out.Kind, file)
+			}
+		}
+		for policyNamespace := range policyNamespaces {
+			if !targets["k8s-namespace/"+policyNamespace] {
+				return nil, fmt.Errorf("NetworkPolicy namespace %s has no matching XNamespace output", policyNamespace)
 			}
 		}
 	}
