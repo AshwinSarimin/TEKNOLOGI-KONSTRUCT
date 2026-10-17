@@ -41,7 +41,7 @@
     "@backstage/plugin-scaffolder-backend-module-github": "^0.9.8",
     "@backstage/plugin-scaffolder-backend-module-notifications": "^0.1.21",
     "@backstage/plugin-scaffolder-node": "^0.13.2",
-    "@backstage/plugin-search-backend": "^2.1.1",
+    "@backstage/plugin-search-backend": "^2.1.6",
     "@backstage/plugin-search-backend-module-catalog": "^0.3.14",
     "@backstage/plugin-search-backend-module-techdocs": "^0.4.13",
     "@backstage/plugin-search-backend-node": "^1.4.3",
