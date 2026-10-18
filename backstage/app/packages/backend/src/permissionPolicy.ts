@@ -27,7 +27,7 @@ import {
  * the same name blocks scaffolder parameter/step access as defense in depth.
  * Everything unmarked stays open to everyone.
  */
-class PlatformPermissionPolicy implements PermissionPolicy {
+export class PlatformPermissionPolicy implements PermissionPolicy {
   async handle(
     request: PolicyQuery,
     user?: PolicyQueryUser,
