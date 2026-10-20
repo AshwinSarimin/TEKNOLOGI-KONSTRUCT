@@ -50,7 +50,6 @@ spec:
   children: []
   members:
     - alex-de-vries
-    - ashwin-sarimin
 ---
 apiVersion: backstage.io/v1alpha1
 kind: Group
@@ -130,7 +129,6 @@ spec:
     email: ashwin.sarimin@teknologi.nl
   memberOf:
     - platform-core
-    - product
 ---
 apiVersion: backstage.io/v1alpha1
 kind: User
